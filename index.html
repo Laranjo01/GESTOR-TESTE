@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Financeiro | Controle Seus Gastos</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">Finanças</h2>
+            <button class="close-sidebar">&times;</button>
+        </div>
+        
+        <div class="sidebar-menu">
+            <div class="menu-item active" data-section="dashboard">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="menu-item" data-section="transactions">
+                <i class="fas fa-wallet"></i>
+                <span>Transações</span>
+            </div>
+            <div class="menu-item" data-section="reports">
+                <i class="fas fa-chart-pie"></i>
+                <span>Relatórios</span>
+            </div>
+            <div class="menu-item" data-section="goals">
+                <i class="fas fa-bullseye"></i>
+                <span>Metas</span>
+            </div>
+            <div class="menu-item" data-section="settings">
+                <i class="fas fa-cog"></i>
+                <span>Configurações</span>
+            </div>
+        </div>
+        
+        <div class="sidebar-footer">
+            <div class="theme-toggle">
+                <i class="fas fa-moon"></i>
+                <span>Tema Escuro</span>
+                <i class="fas fa-toggle-off"></i>
+            </div>
+            
+            <div class="user-profile">
+                <div class="user-avatar">JS</div>
+                <div>
+                    <div class="user-name">João Silva</div>
+                    <div class="user-email">joao@exemplo.com</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+<header class="header">
+    <button class="menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <h1 class="page-title">Dashboard Financeiro</h1>
+    
+    <div class="header-actions">
+        <button class="notification-btn">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge">3</span>
+        </button>
+        <button class="user-btn">
+            <i class="fas fa-user-circle"></i>
+        </button>
+    </div>
+</header>
+
+        <!-- Dashboard Section -->
+        <!-- Substitua a seção Dashboard Section por este código -->
+<section class="content-section active" id="dashboard-section">
+    <!-- Dashboard Grid -->
+    <div class="dashboard-grid">
+        <!-- Balance Cards -->
+        <div class="card balance-card pix">
+            <div class="card-header">
+                <div class="card-title">Saldo Pix</div>
+                <i class="fas fa-qrcode"></i>
+            </div>
+            <div class="card-value" id="remainingBalancePix">R$ 0,00</div>
+            <div class="card-footer">
+                <i class="fas fa-info-circle"></i>
+                <span>Disponível para transferências</span>
+            </div>
+        </div>
+        
+        <div class="card balance-card cash">
+            <div class="card-header">
+                <div class="card-title">Saldo em Cédulas</div>
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="card-value" id="remainingBalanceCash">R$ 0,00</div>
+            <div class="card-footer">
+                <i class="fas fa-info-circle"></i>
+                <span>Dinheiro físico disponível</span>
+            </div>
+        </div>
+        
+        <div class="card balance-card card">
+            <div class="card-header">
+                <div class="card-title">Saldo no Cartão</div>
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="card-value" id="remainingBalanceCard">R$ 0,00</div>
+            <div class="card-footer">
+                <i class="fas fa-info-circle"></i>
+                <span>Limite disponível</span>
+            </div>
+        </div>
+    </div>
+
+    
+<!-- Adicione este card após os cards de saldo -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">Suas Metas</div>
+    <button class="btn btn-outline" onclick="showSection('goals')">
+      Ver Todas
+    </button>
+  </div>
+  
+  <div class="goals-summary">
+    <!-- Será preenchido dinamicamente -->
+  </div>
+  
+  <div class="card-footer">
+    <button class="btn btn-primary" id="addGoalBtn">
+      <i class="fas fa-plus"></i> Nova Meta
+    </button>
+  </div>
+</div>
+    
+
+    <!-- Pagamentos Agendados -->
+    <div class="card upcoming-bills">
+        <div class="card-header">
+            <div class="card-title">Pagamentos Agendados</div>
+            <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div id="upcomingBills">
+            <div class="empty-state" style="padding: 1rem;">
+                <i class="fas fa-calendar" style="font-size: 1.5rem;"></i>
+                <p>Nenhum pagamento agendado</p>
+            </div>
+        </div>
+        <div class="upcoming-bills-actions">
+            <button id="addScheduledPaymentBtn" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Agendar Pagamento
+            </button>
+        </div>
+    </div>
+
+<!-- Transaction History - Estilo igual ao Pagamentos Agendados -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Transações Recentes</div>
+            <button class="btn btn-outline" onclick="showSection('transactions')">
+                Ver Todas
+            </button>
+        </div>
+        
+        <div class="transaction-history" id="transactionHistory">
+            <!-- Transactions will be added here -->
+        </div>
+        
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <i class="fas fa-wallet"></i>
+            <h3>Nenhuma transação encontrada</h3>
+            <p>Adicione sua primeira transação para começar a controlar seus gastos</p>
+        </div>
+    </div>
+
+<!-- Charts Section - Agora em linha única -->
+    <div class="charts-row">
+        <div class="chart-card">
+            <h2 class="chart-title">Gastos por Categoria</h2>
+            <div class="chart-container">
+                <canvas id="expensesChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-card">
+            <h2 class="chart-title">Receitas vs Despesas</h2>
+            <div class="chart-container">
+                <canvas id="incomeVsExpensesChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-card">
+            <h2 class="chart-title">Métodos de Pagamento</h2>
+            <div class="chart-container">
+                <canvas id="paymentMethodsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+
+           
+        <!-- Transactions Section -->
+        <section class="content-section" id="transactions-section">
+            <div class="card">
+                <h2 class="chart-title">Todas as Transações</h2>
+                
+                <div class="filters">
+                    <div class="filter-group">
+                        <span class="filter-label">Filtrar por:</span>
+                        <select id="filterType2" class="form-control">
+                            <option value="all">Todos</option>
+                            <option value="expense">Gastos</option>
+                            <option value="income">Receitas</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <select id="filterCategory2" class="form-control">
+                            <option value="all">Todas Categorias</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <select id="filterPayment2" class="form-control">
+                            <option value="all">Todos Métodos</option>
+                            <option value="pix">Pix</option>
+                            <option value="cash">Dinheiro</option>
+                            <option value="card">Cartão</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <input type="text" id="searchInput2" class="form-control" placeholder="Pesquisar...">
+                    </div>
+                    
+                    <button id="clearFilters2" class="btn btn-outline">
+                        <i class="fas fa-times"></i> Limpar
+                    </button>
+                </div>
+                
+                <div class="transaction-history" id="allTransactions">
+                    <!-- All transactions will be added here -->
+                </div>
+                
+                <div id="emptyState2" class="empty-state" style="display: none;">
+                    <i class="fas fa-wallet"></i>
+                    <h3>Nenhuma transação encontrada</h3>
+                    <p>Adicione sua primeira transação para começar a controlar seus gastos</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reports Section -->
+        <section class="content-section" id="reports-section">
+            <div class="card">
+                <h2 class="chart-title">Relatórios Financeiros</h2>
+                
+                <div class="charts-section">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Gastos por Categoria</h3>
+                        <div class="chart-container">
+                            <canvas id="expensesChart2"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">Receitas vs Despesas</h3>
+                        <div class="chart-container">
+                            <canvas id="incomeVsExpensesChart2"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">Métodos de Pagamento</h3>
+                        <div class="chart-container">
+                            <canvas id="paymentMethodsChart2"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <h3 class="chart-title">Histórico Mensal</h3>
+                        <div class="chart-container">
+                            <canvas id="monthlyHistoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Goals Section -->
+        <!-- Na seção de metas, atualize para: -->
+<section class="content-section" id="goals-section">
+    <div class="card">
+        <div class="card-header" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">
+            <h2 class="chart-title">Suas Metas</h2>
+            <button class="btn btn-primary" id="addGoalBtn">
+                <i class="fas fa-plus"></i> Nova Meta
+            </button>
+        </div>
+        
+        <div class="goals-container" id="goalsList">
+            <!-- Goals will be added here -->
+        </div>
+    </div>
+</section>
+
+        <!-- Settings Section -->
+        <section class="content-section" id="settings-section">
+            <div class="card">
+                <h2 class="chart-title">Configurações</h2>
+                
+                <div class="balance-controls">
+                    <h3>Saldo por Modalidade</h3>
+                    <p>Defina o saldo inicial para cada método de pagamento</p>
+                    
+                    <div class="balance-methods">
+                        <div class="balance-method">
+                            <div class="balance-method-icon pix">
+                                <i class="fas fa-qrcode"></i>
+                            </div>
+                            <div class="balance-method-name">Pix</div>
+                            <div class="balance-method-amount" id="pixBalanceDisplay">R$ 0,00</div>
+                            <input type="number" id="initialBalancePix" class="balance-method-input" placeholder="0.00" step="0.01">
+                            <div class="balance-method-actions">
+                                <button class="balance-method-btn add" data-method="pix">Adicionar</button>
+                                <button class="balance-method-btn subtract" data-method="pix">Subtrair</button>
+                            </div>
+                        </div>
+                        
+                        <div class="balance-method">
+                            <div class="balance-method-icon cash">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div class="balance-method-name">Dinheiro</div>
+                            <div class="balance-method-amount" id="cashBalanceDisplay">R$ 0,00</div>
+                            <input type="number" id="initialBalanceCash" class="balance-method-input" placeholder="0.00" step="0.01">
+                            <div class="balance-method-actions">
+                                <button class="balance-method-btn add" data-method="cash">Adicionar</button>
+                                <button class="balance-method-btn subtract" data-method="cash">Subtrair</button>
+                            </div>
+                        </div>
+                        
+                        <div class="balance-method">
+                            <div class="balance-method-icon card">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <div class="balance-method-name">Cartão</div>
+                            <div class="balance-method-amount" id="cardBalanceDisplay">R$ 0,00</div>
+                            <input type="number" id="initialBalanceCard" class="balance-method-input" placeholder="0.00" step="0.01">
+                            <div class="balance-method-actions">
+                                <button class="balance-method-btn add" data-method="card">Adicionar</button>
+                                <button class="balance-method-btn subtract" data-method="card">Subtrair</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="saveSettings" class="btn btn-primary" style="width: 100%;">
+                        <i class="fas fa-save"></i> Salvar Saldos
+                    </button>
+                </div>
+                
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label for="userName">Nome do Usuário</label>
+                        <input type="text" id="userName" class="form-control" value="João Silva">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="userEmail">Email</label>
+                        <input type="email" id="userEmail" class="form-control" value="joao@exemplo.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="currency">Moeda</label>
+                        <select id="currency" class="form-control">
+                            <option value="BRL">Real Brasileiro (R$)</option>
+                            <option value="USD">Dólar Americano ($)</option>
+                            <option value="EUR">Euro (€)</option>
+                        </select>
+                    </div>
+                    
+                    <h3 style="margin-top: 1.5rem;">Tema de Cores</h3>
+                    <div class="theme-colors">
+                        <div class="theme-color-option" data-color="masculine-1" style="background: linear-gradient(135deg, #1e88e5, #0d47a1);"></div>
+                        <div class="theme-color-option" data-color="masculine-2" style="background: linear-gradient(135deg, #0d47a1, #004d40);"></div>
+                        <div class="theme-color-option" data-color="masculine-3" style="background: linear-gradient(135deg, #004d40, #1e88e5);"></div>
+                        <div class="theme-color-option" data-color="feminine-1" style="background: linear-gradient(135deg, #d81b60, #8e24aa);"></div>
+                        <div class="theme-color-option" data-color="feminine-2" style="background: linear-gradient(135deg, #8e24aa, #5e35b1);"></div>
+                        <div class="theme-color-option" data-color="feminine-3" style="background: linear-gradient(135deg, #5e35b1, #d81b60);"></div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 1.5rem;">
+                        <button id="saveUserSettings" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Configurações
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button class="floating-action-btn" id="addTransactionBtn">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="transactionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Adicionar Transação</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <form id="transactionModalForm">
+                    <div class="form-group">
+                        <label for="modalDate">Data</label>
+                        <input type="date" id="modalDate" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modalItem">Descrição</label>
+                        <input type="text" id="modalItem" class="form-control" placeholder="O que foi?" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modalAmount">Valor</label>
+                        <input type="number" id="modalAmount" class="form-control" placeholder="R$ 0,00" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modalType">Tipo</label>
+                        <select id="modalType" class="form-control" required>
+                            <option value="expense">Gasto</option>
+                            <option value="income">Receita</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modalCategory">Categoria</label>
+                        <select id="modalCategory" class="form-control" required>
+                            <!-- Categorias serão preenchidas dinamicamente -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modalPaymentMethod">Método de Pagamento</label>
+                        <select id="modalPaymentMethod" class="form-control" required>
+                            <option value="pix">Pix</option>
+                            <option value="cash">Dinheiro</option>
+                            <option value="card">Cartão</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelTransaction">Cancelar</button>
+                <button class="btn btn-primary" id="saveTransaction">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+
+<div class="modal-overlay" id="scheduledPaymentModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Agendar Pagamento</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <form id="scheduledPaymentForm">
+                <div class="form-group">
+                    <label for="scheduledItem">Descrição</label>
+                    <input type="text" id="scheduledItem" class="form-control" placeholder="O que será pago?" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="scheduledAmount">Valor</label>
+                    <input type="number" id="scheduledAmount" class="form-control" placeholder="R$ 0,00" step="0.01" min="0" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="scheduledDate">Data de Vencimento</label>
+                    <input type="date" id="scheduledDate" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="scheduledPaymentMethod">Método de Pagamento</label>
+                    <select id="scheduledPaymentMethod" class="form-control" required>
+                        <option value="pix">Pix</option>
+                        <option value="cash">Dinheiro</option>
+                        <option value="card">Cartão</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="scheduledAutoDebit">
+                        <span class="checkmark"></span>
+                        Débito automático
+                    </label>
+                    <small class="form-text">Se marcado, o valor será debitado automaticamente na data de vencimento</small>
+                </div>
+            </form>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelScheduledPayment">Cancelar</button>
+            <button class="btn btn-primary" id="saveScheduledPayment">Salvar</button>
+        </div>
+    </div>
+</div>
+
+    <div class="modal-overlay" id="goalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Nova Meta</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <form id="goalForm" class="goal-form">
+        <input type="text" id="goalName" class="goal-form-input" placeholder="Nome da meta" required>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="goalTarget">Valor da Meta</label>
+            <input type="number" id="goalTarget" class="goal-form-input" placeholder="R$ 0,00" step="0.01" min="0" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="monthlyContribution">Contribuição Mensal (opcional)</label>
+            <input type="number" id="monthlyContribution" class="goal-form-input" placeholder="R$ 0,00" step="0.01" min="0">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="goalDate">Data Alvo</label>
+            <input type="date" id="goalDate" class="goal-form-input" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="goalType">Tipo de Meta</label>
+            <select id="goalType" class="goal-form-input" required>
+              <option value="travel">Viagem</option>
+              <option value="electronics">Eletrônicos</option>
+              <option value="education">Educação</option>
+              <option value="emergency">Fundo de Emergência</option>
+              <option value="other">Outro</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="image-upload-container" onclick="document.getElementById('goalImage').click()">
+          <i class="fas fa-plus"></i>
+          <p>Adicionar Imagem</p>
+          <input type="file" id="goalImage" style="display: none;" accept="image/*">
+          <img id="goalImagePreview" class="goal-form-image-preview" style="display: none;">
+          <button class="remove-image-btn" onclick="removeImage(event)">×</button>
+        </div>
+        
+        <h4 style="margin: 1rem 0 0.5rem;">Escolha um tema de cores:</h4>
+        <div class="theme-colors">
+          <div class="theme-color-option" data-color="masculine-1" style="background: linear-gradient(135deg, #1e88e5, #0d47a1);"></div>
+          <div class="theme-color-option" data-color="masculine-2" style="background: linear-gradient(135deg, #0d47a1, #004d40);"></div>
+          <div class="theme-color-option" data-color="masculine-3" style="background: linear-gradient(135deg, #004d40, #1e88e5);"></div>
+          <div class="theme-color-option" data-color="feminine-1" style="background: linear-gradient(135deg, #d81b60, #8e24aa);"></div>
+          <div class="theme-color-option" data-color="feminine-2" style="background: linear-gradient(135deg, #8e24aa, #5e35b1);"></div>
+          <div class="theme-color-option" data-color="feminine-3" style="background: linear-gradient(135deg, #5e35b1, #d81b60);"></div>
+        </div>
+      </form>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelGoal">Cancelar</button>
+      <button class="btn btn-primary" id="saveGoal">Salvar</button>
+    </div>
+  </div>
+</div>
+
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Editar Transação</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="form-group">
+                        <label for="editDate">Data</label>
+                        <input type="date" id="editDate" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editItem">Descrição</label>
+                        <input type="text" id="editItem" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editAmount">Valor</label>
+                        <input type="number" id="editAmount" class="form-control" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editType">Tipo</label>
+                        <select id="editType" class="form-control" required>
+                            <option value="expense">Gasto</option>
+                            <option value="income">Receita</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editCategory">Categoria</label>
+                        <select id="editCategory" class="form-control" required>
+                            <!-- Categorias serão preenchidas dinamicamente -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editPaymentMethod">Método de Pagamento</label>
+                        <select id="editPaymentMethod" class="form-control" required>
+                            <option value="pix">Pix</option>
+                            <option value="cash">Dinheiro</option>
+                            <option value="card">Cartão</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelEdit">Cancelar</button>
+                <button class="btn btn-primary" id="saveEdit">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+<!-- Modal de Alerta -->
+<div class="modal-overlay" id="alertModal">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Aviso</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <p id="alertMessage"></p>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="confirmAlert">OK</button>
+        </div>
+    </div>
+</div>
+
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirmar Exclusão</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.</p>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelDelete">Cancelar</button>
+                <button class="btn btn-danger" id="confirmDelete">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/app.js"></script>
+<script>
+    function removeImage(e) {
+        e.stopPropagation();
+        document.getElementById('goalImage').value = '';
+        document.getElementById('goalImagePreview').style.display = 'none';
+        document.getElementById('goalImagePreview').src = '';
+    }
+</script>
+</body>
+</html>
