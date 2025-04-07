@@ -4,53 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestor Financeiro | Controle Seus Gastos</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"> <!-- Mudado para Poppins -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"> <!-- Versão um pouco mais recente -->
     <link rel="stylesheet" href="css/style.css">
+    <!-- Estilos Inline para Teste (se 'style.css' não for suficiente) -->
+    <style>
+        /* Estilo para Títulos de Categoria no Dropdown */
+        .category-title-option {
+             font-weight: 600 !important;
+             color: var(--primary-color, #0d6efd) !important; /* Cor primária do tema */
+             background-color: var(--bg-secondary, #e9ecef) !important;
+             padding-top: 6px !important;
+             padding-bottom: 3px !important;
+             cursor: default !important;
+             border-top: 1px solid var(--border-color, #dee2e6);
+             margin-top: 4px;
+             font-size: 0.9em; /* Um pouco menor para destaque */
+        }
+        body[data-theme="dark"] .category-title-option {
+             color: var(--primary-color, #0d6efd) !important; /* Cor primária, mesmo no escuro? Ou ajustar */
+             background-color: #495057 !important; /* Fundo mais escuro */
+             border-top-color: #6c757d;
+        }
+        /* Highlight para Novas Transações */
+        .transaction-item.new-transaction-highlight { animation: highlight-bg 3.5s ease-out; }
+        @keyframes highlight-bg {
+             0% { background-color: rgba(13, 202, 240, 0.3); } /* Cor Info */
+             70% { background-color: rgba(13, 202, 240, 0.1); }
+             100% { background-color: transparent; }
+        }
+         /* Estilo para Cartão desabilitado em Agendamento de Fatura */
+        select#scheduledPaymentMethod option[value="card"]:disabled {
+             color: var(--text-muted) !important;
+             background-color: var(--bg-secondary) !important;
+             font-style: italic;
+             cursor: not-allowed;
+        }
+        /* Estilos para placeholders com valores ocultos */
+        .values-hidden input::placeholder {
+            color: transparent !important; /* Esconde o texto do placeholder */
+        }
+        .values-hidden input {
+            font-size: 1.2em; /* Aumenta um pouco para os asteriscos */
+            letter-spacing: 2px; /* Espaça os asteriscos */
+        }
+
+    </style>
 </head>
-<body>
+<body data-theme="light"> <!-- Garantir tema inicial -->
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            <h2 class="sidebar-title">Finanças</h2>
-            <button class="close-sidebar">&times;</button>
+            <h2 class="sidebar-title"><i class="fas fa-piggy-bank"></i> Finanças</h2> <!-- Ícone -->
+            <button class="close-sidebar" title="Fechar Menu">&times;</button>
         </div>
-        
+
         <div class="sidebar-menu">
-            <div class="menu-item active" data-section="dashboard">
-                <i class="fas fa-home"></i>
-                <span>Dashboard</span>
-            </div>
-            <div class="menu-item" data-section="transactions">
-                <i class="fas fa-wallet"></i>
-                <span>Transações</span>
-            </div>
-            <div class="menu-item" data-section="reports">
-                <i class="fas fa-chart-pie"></i>
-                <span>Relatórios</span>
-            </div>
-            <div class="menu-item" data-section="goals">
-                <i class="fas fa-bullseye"></i>
-                <span>Metas</span>
-            </div>
-            <div class="menu-item" data-section="settings">
-                <i class="fas fa-cog"></i>
-                <span>Configurações</span>
-            </div>
+            <div class="menu-item active" data-section="dashboard"> <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span> </div>
+            <div class="menu-item" data-section="transactions"> <i class="fas fa-exchange-alt"></i> <span>Transações</span> </div>
+            <div class="menu-item" data-section="scheduled"> <i class="fas fa-calendar-alt"></i> <span>Agendamentos</span> </div>
+            <div class="menu-item" data-section="reports"> <i class="fas fa-chart-pie"></i> <span>Relatórios</span> </div>
+            <div class="menu-item" data-section="goals"> <i class="fas fa-bullseye"></i> <span>Metas</span> </div>
+            <div class="menu-item" data-section="settings"> <i class="fas fa-cog"></i> <span>Configurações</span> </div>
+            <!-- Seção Advanced-Settings Removida por estar Vazia -->
         </div>
-        
+
         <div class="sidebar-footer">
+             <!-- Botão de Visibilidade -->
+             <button id="valueToggle" class="value-toggle-btn" title="Ocultar valores">
+                 <i class="fas fa-eye"></i> <!-- Ícone inicial -->
+                 <span class="sr-only">Mostrar/Ocultar Valores</span> <!-- Acessibilidade -->
+             </button>
             <div class="theme-toggle">
-                <i class="fas fa-moon"></i>
-                <span>Tema Escuro</span>
-                <i class="fas fa-toggle-off"></i>
+                <i class="fas fa-sun"></i> <!-- Ícone dia -->
+                <span>Mudar Tema</span>
+                <i class="fas fa-toggle-off"></i> <!-- Ícone toggle -->
+                <i class="fas fa-moon" style="display:none;"></i> <!-- Ícone noite (controlado por CSS/JS) -->
             </div>
-            
+
             <div class="user-profile">
-                <div class="user-avatar">JS</div>
+                <div class="user-avatar">?</div> <!-- Pode ser JS ou iniciais -->
                 <div>
-                    <div class="user-name">João Silva</div>
-                    <div class="user-email">joao@exemplo.com</div>
+                    <div class="user-name">Usuário</div>
+                    <div class="user-email">email@exemplo.com</div>
                 </div>
             </div>
         </div>
@@ -59,639 +95,299 @@
     <!-- Main Content -->
     <main class="main-content">
         <!-- Header -->
-<header class="header">
-    <button class="menu-toggle">
-        <i class="fas fa-bars"></i>
-    </button>
-    
-    <h1 class="page-title">Dashboard Financeiro</h1>
-    
-    <div class="header-actions">
-        <button class="notification-btn">
-            <i class="fas fa-bell"></i>
-            <span class="notification-badge">3</span>
-        </button>
-        <button class="user-btn">
-            <i class="fas fa-user-circle"></i>
-        </button>
-    </div>
-</header>
+        <header class="header">
+            <button class="menu-toggle"> <i class="fas fa-bars"></i> </button>
+            <h1 class="page-title">Dashboard</h1>
+            <div class="header-actions">
+                 <!-- Botão de Notificação (funcionalidade futura?) -->
+                 <!--
+                <button class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">0</span>
+                </button>
+                 -->
+                <button class="user-btn" title="Perfil (Em breve)">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </header>
 
-        <!-- Dashboard Section -->
-        <!-- Substitua a seção Dashboard Section por este código -->
-<section class="content-section active" id="dashboard-section">
-    <!-- Dashboard Grid -->
-    <div class="dashboard-grid">
-        <!-- Balance Cards -->
-        <div class="card balance-card pix">
-            <div class="card-header">
-                <div class="card-title">Saldo Pix</div>
-                <i class="fas fa-qrcode"></i>
-            </div>
-            <div class="card-value" id="remainingBalancePix">R$ 0,00</div>
-            <div class="card-footer">
-                <i class="fas fa-info-circle"></i>
-                <span>Disponível para transferências</span>
-            </div>
-        </div>
-        
-        <div class="card balance-card cash">
-            <div class="card-header">
-                <div class="card-title">Saldo em Cédulas</div>
-                <i class="fas fa-money-bill-wave"></i>
-            </div>
-            <div class="card-value" id="remainingBalanceCash">R$ 0,00</div>
-            <div class="card-footer">
-                <i class="fas fa-info-circle"></i>
-                <span>Dinheiro físico disponível</span>
-            </div>
-        </div>
-        
-        <div class="card balance-card card">
-            <div class="card-header">
-                <div class="card-title">Saldo no Cartão</div>
-                <i class="fas fa-credit-card"></i>
-            </div>
-            <div class="card-value" id="remainingBalanceCard">R$ 0,00</div>
-            <div class="card-footer">
-                <i class="fas fa-info-circle"></i>
-                <span>Limite disponível</span>
-            </div>
-        </div>
-    </div>
+        <!-- Seções de Conteúdo -->
 
-    
-<!-- Adicione este card após os cards de saldo -->
-<div class="card">
-  <div class="card-header">
-    <div class="card-title">Suas Metas</div>
-    <button class="btn btn-outline" onclick="showSection('goals')">
-      Ver Todas
-    </button>
-  </div>
-  
-  <div class="goals-summary">
-    <!-- Será preenchido dinamicamente -->
-  </div>
-  
-  <div class="card-footer">
-    <button class="btn btn-primary" id="addGoalBtn">
-      <i class="fas fa-plus"></i> Nova Meta
-    </button>
-  </div>
-</div>
-    
-
-    <!-- Pagamentos Agendados -->
-    <div class="card upcoming-bills">
-        <div class="card-header">
-            <div class="card-title">Pagamentos Agendados</div>
-            <i class="fas fa-calendar-alt"></i>
-        </div>
-        <div id="upcomingBills">
-            <div class="empty-state" style="padding: 1rem;">
-                <i class="fas fa-calendar" style="font-size: 1.5rem;"></i>
-                <p>Nenhum pagamento agendado</p>
+        <!-- Dashboard -->
+        <section class="content-section active" id="dashboard-section">
+            <div class="dashboard-grid">
+                 <div class="card balance-card pix card-positive"> <div class="card-header"> <div class="card-title">Saldo Pix</div> <i class="fas fa-qrcode"></i> </div> <div class="card-value" id="remainingBalancePix">R$ 0,00</div> <div class="card-footer"> <i class="fas fa-info-circle"></i> <span>Transferências</span> </div> </div>
+                 <div class="card balance-card cash card-positive"> <div class="card-header"> <div class="card-title">Em Cédulas</div> <i class="fas fa-money-bill-wave"></i> </div> <div class="card-value" id="remainingBalanceCash">R$ 0,00</div> <div class="card-footer"> <i class="fas fa-info-circle"></i> <span>Dinheiro físico</span> </div> </div>
+                 <div class="card balance-card card card-positive"> <div class="card-header"> <div class="card-title">Saldo Cartão</div> <i class="fas fa-credit-card"></i> </div> <div class="card-value" id="remainingBalanceCard">R$ 0,00</div> <div class="card-footer"> <i class="fas fa-info-circle"></i> <span>Saldo conta/débito</span> </div> </div>
             </div>
-        </div>
-        <div class="upcoming-bills-actions">
-            <button id="addScheduledPaymentBtn" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Agendar Pagamento
-            </button>
-        </div>
-    </div>
 
-<!-- Transaction History - Estilo igual ao Pagamentos Agendados -->
-    <div class="card">
-        <div class="card-header">
-            <div class="card-title">Transações Recentes</div>
-            <button class="btn btn-outline" onclick="showSection('transactions')">
-                Ver Todas
-            </button>
-        </div>
-        
-        <div class="transaction-history" id="transactionHistory">
-            <!-- Transactions will be added here -->
-        </div>
-        
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <i class="fas fa-wallet"></i>
-            <h3>Nenhuma transação encontrada</h3>
-            <p>Adicione sua primeira transação para começar a controlar seus gastos</p>
-        </div>
-    </div>
+             <!-- Metas Resumo -->
+            <div class="card"> <div class="card-header"> <div class="card-title">Suas Metas</div> <button class="btn btn-sm btn-outline" onclick="window.app.showSection('goals')"> <i class="fas fa-eye"></i> Ver Todas </button> </div> <div class="goals-summary"> <!-- Conteúdo dinâmico --> </div> <div class="card-footer"> <button class="btn btn-sm btn-primary" id="addGoalBtnDashboard"> <i class="fas fa-plus"></i> Nova Meta </button> </div> </div>
 
-<!-- Charts Section - Agora em linha única -->
-    <div class="charts-row">
-        <div class="chart-card">
-            <h2 class="chart-title">Gastos por Categoria</h2>
-            <div class="chart-container">
-                <canvas id="expensesChart"></canvas>
-            </div>
-        </div>
-        
-        <div class="chart-card">
-            <h2 class="chart-title">Receitas vs Despesas</h2>
-            <div class="chart-container">
-                <canvas id="incomeVsExpensesChart"></canvas>
-            </div>
-        </div>
-        
-        <div class="chart-card">
-            <h2 class="chart-title">Métodos de Pagamento</h2>
-            <div class="chart-container">
-                <canvas id="paymentMethodsChart"></canvas>
-            </div>
-        </div>
-    </div>
-</section>
 
-           
-        <!-- Transactions Section -->
+             <!-- Pagamentos Agendados Próximos -->
+             <div class="card upcoming-bills">
+                 <div class="card-header">
+                     <div class="card-title">Próximos Pagamentos</div>
+                     <button class="btn btn-sm btn-outline" onclick="window.app.showSection('scheduled')"> <i class="fas fa-calendar-check"></i> Ver Todos </button>
+                 </div>
+                 <div id="upcomingBills">
+                     <!-- Conteúdo dinâmico -->
+                    <div class="empty-state info" style="padding: 1rem;"><i class="fas fa-calendar-check"></i><p>Nenhum pagamento próximo</p></div>
+                 </div>
+                 <div class="card-footer">
+                    <button id="addScheduledPaymentBtn" class="btn btn-sm btn-primary"> <i class="fas fa-plus"></i> Agendar Pagamento </button>
+                </div>
+             </div>
+
+            <!-- Transações Recentes -->
+            <div class="card">
+                <div class="card-header"> <div class="card-title">Transações Recentes</div> <button class="btn btn-sm btn-outline" onclick="window.app.showSection('transactions')"> <i class="fas fa-list"></i> Ver Todas </button> </div>
+                <div class="transaction-history" id="transactionHistory"> <!-- Conteúdo dinâmico --> </div>
+                <div id="emptyState" class="empty-state info" style="display: none;"> <i class="fas fa-wallet"></i> <h3>Nenhuma transação</h3> <p>Adicione transações para visualizar aqui.</p> </div>
+            </div>
+
+            <!-- Gráficos Dashboard -->
+            <div class="charts-row">
+                 <div class="chart-card"> <h2 class="chart-title">Gastos / Categoria</h2> <div class="chart-container"> <canvas id="expensesChart"></canvas> </div> </div>
+                 <div class="chart-card"> <h2 class="chart-title">Receita x Despesa</h2> <div class="chart-container"> <canvas id="incomeVsExpensesChart"></canvas> </div> </div>
+                 <div class="chart-card"> <h2 class="chart-title">Uso por Método</h2> <div class="chart-container"> <canvas id="paymentMethodsChart"></canvas> </div> </div>
+            </div>
+        </section>
+
+        <!-- Transações -->
         <section class="content-section" id="transactions-section">
             <div class="card">
-                <h2 class="chart-title">Todas as Transações</h2>
-                
+                 <div class="card-header">
+                     <h2 class="chart-title">Todas as Transações</h2>
+                     <!-- Botão Add Transação pode ficar no FAB -->
+                 </div>
                 <div class="filters">
-                    <div class="filter-group">
-                        <span class="filter-label">Filtrar por:</span>
-                        <select id="filterType2" class="form-control">
-                            <option value="all">Todos</option>
-                            <option value="expense">Gastos</option>
-                            <option value="income">Receitas</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <select id="filterCategory2" class="form-control">
-                            <option value="all">Todas Categorias</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <select id="filterPayment2" class="form-control">
-                            <option value="all">Todos Métodos</option>
-                            <option value="pix">Pix</option>
-                            <option value="cash">Dinheiro</option>
-                            <option value="card">Cartão</option>
-                        </select>
-                    </div>
-                    
-                    <div class="filter-group">
-                        <input type="text" id="searchInput2" class="form-control" placeholder="Pesquisar...">
-                    </div>
-                    
-                    <button id="clearFilters2" class="btn btn-outline">
-                        <i class="fas fa-times"></i> Limpar
-                    </button>
+                    <div class="filter-group"> <label for="filterType2" class="sr-only">Tipo</label> <select id="filterType2" class="form-control"> <option value="all">Todos Tipos</option> <option value="expense">Gastos</option> <option value="income">Receitas</option> </select> </div>
+                    <div class="filter-group"> <label for="filterCategory2" class="sr-only">Categoria</label> <select id="filterCategory2" class="form-control"> <option value="all">Todas Categorias</option> </select> </div>
+                    <div class="filter-group"> <label for="filterPayment2" class="sr-only">Método</label> <select id="filterPayment2" class="form-control"> <option value="all">Todos Métodos</option> <option value="pix">Pix</option> <option value="cash">Dinheiro</option> <option value="card">Cartão</option> </select> </div>
+                    <div class="filter-group"> <label for="searchInput2" class="sr-only">Pesquisar</label> <input type="search" id="searchInput2" class="form-control" placeholder="Pesquisar descrição ou categoria..."> </div>
+                    <button id="clearFilters2" class="btn btn-sm btn-outline" title="Limpar Filtros"> <i class="fas fa-times"></i> </button>
                 </div>
-                
-                <div class="transaction-history" id="allTransactions">
-                    <!-- All transactions will be added here -->
-                </div>
-                
-                <div id="emptyState2" class="empty-state" style="display: none;">
-                    <i class="fas fa-wallet"></i>
-                    <h3>Nenhuma transação encontrada</h3>
-                    <p>Adicione sua primeira transação para começar a controlar seus gastos</p>
-                </div>
+                <div class="transaction-history" id="allTransactions"> <!-- Conteúdo dinâmico --> </div>
+                <div id="emptyState2" class="empty-state info" style="display: none;"> <i class="fas fa-search"></i> <h3>Nenhuma transação encontrada</h3> <p>Tente ajustar os filtros ou adicione novas transações.</p> </div>
             </div>
         </section>
 
-        <!-- Reports Section -->
+         <!-- Agendamentos -->
+         <section class="content-section" id="scheduled-section">
+             <div class="card">
+                 <div class="card-header">
+                     <h2 class="chart-title">Gerenciar Agendamentos</h2>
+                      <!-- Botão Agendar está no Dashboard ou FAB -->
+                      <button id="addScheduledFromListBtn" class="btn btn-sm btn-primary"> <i class="fas fa-plus"></i> Novo Agendamento </button> <!-- Adicionado Botão aqui também -->
+                 </div>
+                 <div class="scheduled-list-container" id="allScheduledPaymentsList">
+                    <div class="empty-state info" style="padding: 2rem;"><i class="fas fa-calendar-plus"></i><p>Nenhum agendamento.</p></div>
+                </div>
+             </div>
+         </section>
+
+        <!-- Relatórios -->
         <section class="content-section" id="reports-section">
-            <div class="card">
-                <h2 class="chart-title">Relatórios Financeiros</h2>
-                
-                <div class="charts-section">
-                    <div class="chart-card">
-                        <h3 class="chart-title">Gastos por Categoria</h3>
-                        <div class="chart-container">
-                            <canvas id="expensesChart2"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-card">
-                        <h3 class="chart-title">Receitas vs Despesas</h3>
-                        <div class="chart-container">
-                            <canvas id="incomeVsExpensesChart2"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-card">
-                        <h3 class="chart-title">Métodos de Pagamento</h3>
-                        <div class="chart-container">
-                            <canvas id="paymentMethodsChart2"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div class="chart-card">
-                        <h3 class="chart-title">Histórico Mensal</h3>
-                        <div class="chart-container">
-                            <canvas id="monthlyHistoryChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
+             <div class="card"> <h2 class="chart-title">Relatórios Financeiros Detalhados</h2>
+                 <div class="charts-row">
+                    <div class="chart-card"> <h3 class="chart-title">Gastos por Categoria</h3> <div class="chart-container"><canvas id="expensesChart2"></canvas></div> </div>
+                    <div class="chart-card"> <h3 class="chart-title">Receita x Despesa</h3> <div class="chart-container"><canvas id="incomeVsExpensesChart2"></canvas></div> </div>
+                 </div>
+                <div class="charts-row">
+                     <div class="chart-card"> <h3 class="chart-title">Uso por Método</h3> <div class="chart-container"><canvas id="paymentMethodsChart2"></canvas></div> </div>
+                     <div class="chart-card"> <h3 class="chart-title">Histórico Mensal (Receita x Despesa)</h3> <div class="chart-container"><canvas id="monthlyHistoryChart"></canvas></div> </div>
+                 </div>
+             </div>
         </section>
 
-        <!-- Goals Section -->
-        <!-- Na seção de metas, atualize para: -->
-<section class="content-section" id="goals-section">
-    <div class="card">
-        <div class="card-header" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">
-            <h2 class="chart-title">Suas Metas</h2>
-            <button class="btn btn-primary" id="addGoalBtn">
-                <i class="fas fa-plus"></i> Nova Meta
-            </button>
-        </div>
-        
-        <div class="goals-container" id="goalsList">
-            <!-- Goals will be added here -->
-        </div>
-    </div>
-</section>
+        <!-- Metas -->
+        <section class="content-section" id="goals-section">
+            <div class="card">
+                <div class="card-header">
+                     <h2 class="chart-title">Planeje Suas Metas</h2>
+                     <button class="btn btn-sm btn-primary" id="addGoalBtnList"> <i class="fas fa-plus"></i> Nova Meta </button>
+                 </div>
+                 <!-- Resumo pode vir aqui -->
+                <div class="goals-summary" style="padding: 1rem; border-bottom: 1px solid var(--border-color)">
+                     <!-- Conteúdo dinâmico do resumo das metas -->
+                </div>
+                <div class="goals-container" id="goalsList">
+                    <div class="empty-state info" style="padding: 2rem;"><i class="fas fa-flag-checkered"></i><p>Nenhuma meta criada.</p></div>
+                 </div>
+             </div>
+        </section>
 
-        <!-- Settings Section -->
+        <!-- Configurações -->
         <section class="content-section" id="settings-section">
-            <div class="card">
-                <h2 class="chart-title">Configurações</h2>
-                
-                <div class="balance-controls">
-                    <h3>Saldo por Modalidade</h3>
-                    <p>Defina o saldo inicial para cada método de pagamento</p>
-                    
-                    <div class="balance-methods">
-                        <div class="balance-method">
-                            <div class="balance-method-icon pix">
-                                <i class="fas fa-qrcode"></i>
-                            </div>
-                            <div class="balance-method-name">Pix</div>
-                            <div class="balance-method-amount" id="pixBalanceDisplay">R$ 0,00</div>
-                            <input type="number" id="initialBalancePix" class="balance-method-input" placeholder="0.00" step="0.01">
-                            <div class="balance-method-actions">
-                                <button class="balance-method-btn add" data-method="pix">Adicionar</button>
-                                <button class="balance-method-btn subtract" data-method="pix">Subtrair</button>
-                            </div>
+            <div class="card"> <h2 class="chart-title">Configurações Gerais</h2>
+                <div class="settings-grid">
+                     <!-- Saldos Iniciais -->
+                    <div class="settings-block"> <h3>Saldo Inicial por Modalidade</h3> <p>Defina o valor inicial ao começar a usar o app.</p>
+                         <div class="balance-methods">
+                            <div class="balance-method"> <div class="balance-method-icon pix"><i class="fas fa-qrcode"></i></div> <div class="balance-method-details"> <div class="balance-method-name">Pix</div> <div class="balance-method-amount" id="pixBalanceDisplay">R$ 0,00</div> </div> <input type="number" id="initialBalancePix" class="balance-method-input form-control" placeholder="Valor Inicial Pix" step="0.01"> </div>
+                            <div class="balance-method"> <div class="balance-method-icon cash"><i class="fas fa-money-bill-wave"></i></div> <div class="balance-method-details"> <div class="balance-method-name">Dinheiro</div> <div class="balance-method-amount" id="cashBalanceDisplay">R$ 0,00</div> </div> <input type="number" id="initialBalanceCash" class="balance-method-input form-control" placeholder="Valor Inicial Dinheiro" step="0.01"> </div>
+                            <div class="balance-method"> <div class="balance-method-icon card"><i class="fas fa-credit-card"></i></div> <div class="balance-method-details"> <div class="balance-method-name">Conta/Cartão</div> <div class="balance-method-amount" id="cardBalanceDisplay">R$ 0,00</div> </div> <input type="number" id="initialBalanceCard" class="balance-method-input form-control" placeholder="Valor Inicial Conta" step="0.01"> </div>
                         </div>
-                        
-                        <div class="balance-method">
-                            <div class="balance-method-icon cash">
-                                <i class="fas fa-money-bill-wave"></i>
-                            </div>
-                            <div class="balance-method-name">Dinheiro</div>
-                            <div class="balance-method-amount" id="cashBalanceDisplay">R$ 0,00</div>
-                            <input type="number" id="initialBalanceCash" class="balance-method-input" placeholder="0.00" step="0.01">
-                            <div class="balance-method-actions">
-                                <button class="balance-method-btn add" data-method="cash">Adicionar</button>
-                                <button class="balance-method-btn subtract" data-method="cash">Subtrair</button>
-                            </div>
+                         <button id="saveSettings" class="btn btn-primary"> <i class="fas fa-save"></i> Salvar Saldos </button>
+                     </div>
+                     <!-- Dados do Usuário e Tema -->
+                    <div class="settings-block"> <h3>Usuário e Aparência</h3>
+                         <div class="settings-form">
+                            <div class="form-group"> <label for="userName">Nome</label> <input type="text" id="userName" class="form-control"> </div>
+                            <div class="form-group"> <label for="userEmail">Email</label> <input type="email" id="userEmail" class="form-control"> </div>
+                            <div class="form-group"> <label for="currency">Moeda Padrão</label> <select id="currency" class="form-control"> <option value="BRL">Real Brasileiro (R$)</option> <option value="USD">Dólar Americano ($)</option> <option value="EUR">Euro (€)</option> </select> </div>
+                             <h4>Cor do Tema</h4>
+                             <div class="theme-colors">
+                                <div class="theme-color-option" data-color="masculine-1" title="Azul Padrão" style="background: linear-gradient(135deg, #1e88e5, #0d47a1);"></div>
+                                <div class="theme-color-option" data-color="masculine-2" title="Verde Azulado" style="background: linear-gradient(135deg, #0d47a1, #004d40);"></div>
+                                <div class="theme-color-option" data-color="masculine-3" title="Verde Musgo" style="background: linear-gradient(135deg, #004d40, #1e88e5);"></div>
+                                <div class="theme-color-option" data-color="feminine-1" title="Rosa Roxo" style="background: linear-gradient(135deg, #d81b60, #8e24aa);"></div>
+                                <div class="theme-color-option" data-color="feminine-2" title="Roxo Violeta" style="background: linear-gradient(135deg, #8e24aa, #5e35b1);"></div>
+                                <div class="theme-color-option" data-color="feminine-3" title="Violeta Rosa" style="background: linear-gradient(135deg, #5e35b1, #d81b60);"></div>
+                             </div>
+                             <button id="saveUserSettings" class="btn btn-primary" style="margin-top: 1rem;"> <i class="fas fa-save"></i> Salvar Preferências </button>
                         </div>
-                        
-                        <div class="balance-method">
-                            <div class="balance-method-icon card">
-                                <i class="fas fa-credit-card"></i>
-                            </div>
-                            <div class="balance-method-name">Cartão</div>
-                            <div class="balance-method-amount" id="cardBalanceDisplay">R$ 0,00</div>
-                            <input type="number" id="initialBalanceCard" class="balance-method-input" placeholder="0.00" step="0.01">
-                            <div class="balance-method-actions">
-                                <button class="balance-method-btn add" data-method="card">Adicionar</button>
-                                <button class="balance-method-btn subtract" data-method="card">Subtrair</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button id="saveSettings" class="btn btn-primary" style="width: 100%;">
-                        <i class="fas fa-save"></i> Salvar Saldos
-                    </button>
-                </div>
-                
-                <div class="settings-form">
-                    <div class="form-group">
-                        <label for="userName">Nome do Usuário</label>
-                        <input type="text" id="userName" class="form-control" value="João Silva">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="userEmail">Email</label>
-                        <input type="email" id="userEmail" class="form-control" value="joao@exemplo.com">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="currency">Moeda</label>
-                        <select id="currency" class="form-control">
-                            <option value="BRL">Real Brasileiro (R$)</option>
-                            <option value="USD">Dólar Americano ($)</option>
-                            <option value="EUR">Euro (€)</option>
-                        </select>
-                    </div>
-                    
-                    <h3 style="margin-top: 1.5rem;">Tema de Cores</h3>
-                    <div class="theme-colors">
-                        <div class="theme-color-option" data-color="masculine-1" style="background: linear-gradient(135deg, #1e88e5, #0d47a1);"></div>
-                        <div class="theme-color-option" data-color="masculine-2" style="background: linear-gradient(135deg, #0d47a1, #004d40);"></div>
-                        <div class="theme-color-option" data-color="masculine-3" style="background: linear-gradient(135deg, #004d40, #1e88e5);"></div>
-                        <div class="theme-color-option" data-color="feminine-1" style="background: linear-gradient(135deg, #d81b60, #8e24aa);"></div>
-                        <div class="theme-color-option" data-color="feminine-2" style="background: linear-gradient(135deg, #8e24aa, #5e35b1);"></div>
-                        <div class="theme-color-option" data-color="feminine-3" style="background: linear-gradient(135deg, #5e35b1, #d81b60);"></div>
-                    </div>
-                    
-                    <div class="form-group" style="margin-top: 1.5rem;">
-                        <button id="saveUserSettings" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Salvar Configurações
-                        </button>
+                     </div>
+                     <!-- Importar / Exportar -->
+                     <div class="settings-block"> <h3>Backup e Restauração</h3> <p>Salve seus dados ou importe um backup anterior.</p>
+                         <div class="data-actions">
+                             <button id="exportDataBtn" class="btn btn-outline"> <i class="fas fa-download"></i> Exportar Dados (.json) </button>
+                            <button id="importDataBtn" class="btn btn-outline"> <i class="fas fa-upload"></i> Importar Backup (.json) </button>
+                         </div>
+                        <input type="file" id="importDataInput" accept=".json" style="display: none;">
                     </div>
                 </div>
             </div>
         </section>
+
     </main>
 
-    <!-- Floating Action Button -->
-    <button class="floating-action-btn" id="addTransactionBtn">
+    <!-- Floating Action Button (FAB) -->
+    <button class="floating-action-btn" id="addTransactionBtn" title="Adicionar Transação">
         <i class="fas fa-plus"></i>
     </button>
 
     <!-- Modals -->
+
+    <!-- Modal de Transação (Adicionar/Editar) -->
     <div class="modal-overlay" id="transactionModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 class="modal-title">Adicionar Transação</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            
-            <div class="modal-body">
-                <form id="transactionModalForm">
-                    <div class="form-group">
-                        <label for="modalDate">Data</label>
-                        <input type="date" id="modalDate" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="modalItem">Descrição</label>
-                        <input type="text" id="modalItem" class="form-control" placeholder="O que foi?" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="modalAmount">Valor</label>
-                        <input type="number" id="modalAmount" class="form-control" placeholder="R$ 0,00" step="0.01" min="0" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="modalType">Tipo</label>
-                        <select id="modalType" class="form-control" required>
-                            <option value="expense">Gasto</option>
-                            <option value="income">Receita</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="modalCategory">Categoria</label>
-                        <select id="modalCategory" class="form-control" required>
-                            <!-- Categorias serão preenchidas dinamicamente -->
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="modalPaymentMethod">Método de Pagamento</label>
-                        <select id="modalPaymentMethod" class="form-control" required>
-                            <option value="pix">Pix</option>
-                            <option value="cash">Dinheiro</option>
-                            <option value="card">Cartão</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            
-            <div class="modal-footer">
-                <button class="btn btn-outline" id="cancelTransaction">Cancelar</button>
-                <button class="btn btn-primary" id="saveTransaction">Salvar</button>
-            </div>
-        </div>
+        <div class="modal"> <div class="modal-header"> <h3 class="modal-title">Adicionar Transação</h3> <button class="modal-close">&times;</button> </div> <div class="modal-body"> <form id="transactionModalForm">
+            <div class="form-row"> <div class="form-group"> <label for="modalDate">Data</label> <input type="date" id="modalDate" class="form-control" required> </div> <div class="form-group"> <label for="modalType">Tipo</label> <select id="modalType" class="form-control" required> <option value="expense">Gasto</option> <option value="income">Receita</option> </select> </div> </div>
+            <div class="form-group"> <label for="modalItem">Descrição</label> <input type="text" id="modalItem" class="form-control" placeholder="Ex: Supermercado, Salário" required> </div>
+            <div class="form-row"> <div class="form-group"> <label for="modalAmount">Valor</label> <input type="number" id="modalAmount" class="form-control monetary-input" placeholder="0,00" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="modalPaymentMethod">Modalidade</label> <select id="modalPaymentMethod" class="form-control" required> <option value="pix">Pix</option> <option value="cash">Dinheiro</option> <option value="card">Conta/Cartão</option> </select> </div> </div>
+            <div class="form-group"> <label for="modalCategory">Categoria</label> <select id="modalCategory" class="form-control" required> </select> </div>
+        </form> </div> <div class="modal-footer"> <button class="btn btn-outline" id="cancelTransaction">Cancelar</button> <button class="btn btn-primary" id="saveTransaction">Salvar</button> </div> </div>
     </div>
 
-
-<div class="modal-overlay" id="scheduledPaymentModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h3 class="modal-title">Agendar Pagamento</h3>
-            <button class="modal-close">&times;</button>
-        </div>
-        
-        <div class="modal-body">
-            <form id="scheduledPaymentForm">
-                <div class="form-group">
-                    <label for="scheduledItem">Descrição</label>
-                    <input type="text" id="scheduledItem" class="form-control" placeholder="O que será pago?" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="scheduledAmount">Valor</label>
-                    <input type="number" id="scheduledAmount" class="form-control" placeholder="R$ 0,00" step="0.01" min="0" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="scheduledDate">Data de Vencimento</label>
-                    <input type="date" id="scheduledDate" class="form-control" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="scheduledPaymentMethod">Método de Pagamento</label>
-                    <select id="scheduledPaymentMethod" class="form-control" required>
-                        <option value="pix">Pix</option>
-                        <option value="cash">Dinheiro</option>
-                        <option value="card">Cartão</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="scheduledAutoDebit">
-                        <span class="checkmark"></span>
-                        Débito automático
-                    </label>
-                    <small class="form-text">Se marcado, o valor será debitado automaticamente na data de vencimento</small>
-                </div>
-            </form>
-        </div>
-        
-        <div class="modal-footer">
-            <button class="btn btn-outline" id="cancelScheduledPayment">Cancelar</button>
-            <button class="btn btn-primary" id="saveScheduledPayment">Salvar</button>
-        </div>
-    </div>
-</div>
-
-    <div class="modal-overlay" id="goalModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 class="modal-title">Nova Meta</h3>
-      <button class="modal-close">&times;</button>
-    </div>
-    
-    <div class="modal-body">
-      <form id="goalForm" class="goal-form">
-        <input type="text" id="goalName" class="goal-form-input" placeholder="Nome da meta" required>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="goalTarget">Valor da Meta</label>
-            <input type="number" id="goalTarget" class="goal-form-input" placeholder="R$ 0,00" step="0.01" min="0" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="monthlyContribution">Contribuição Mensal (opcional)</label>
-            <input type="number" id="monthlyContribution" class="goal-form-input" placeholder="R$ 0,00" step="0.01" min="0">
-          </div>
-        </div>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="goalDate">Data Alvo</label>
-            <input type="date" id="goalDate" class="goal-form-input" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="goalType">Tipo de Meta</label>
-            <select id="goalType" class="goal-form-input" required>
-              <option value="travel">Viagem</option>
-              <option value="electronics">Eletrônicos</option>
-              <option value="education">Educação</option>
-              <option value="emergency">Fundo de Emergência</option>
-              <option value="other">Outro</option>
-            </select>
-          </div>
-        </div>
-        
-        <div class="image-upload-container" onclick="document.getElementById('goalImage').click()">
-          <i class="fas fa-plus"></i>
-          <p>Adicionar Imagem</p>
-          <input type="file" id="goalImage" style="display: none;" accept="image/*">
-          <img id="goalImagePreview" class="goal-form-image-preview" style="display: none;">
-          <button class="remove-image-btn" onclick="removeImage(event)">×</button>
-        </div>
-        
-        <h4 style="margin: 1rem 0 0.5rem;">Escolha um tema de cores:</h4>
-        <div class="theme-colors">
-          <div class="theme-color-option" data-color="masculine-1" style="background: linear-gradient(135deg, #1e88e5, #0d47a1);"></div>
-          <div class="theme-color-option" data-color="masculine-2" style="background: linear-gradient(135deg, #0d47a1, #004d40);"></div>
-          <div class="theme-color-option" data-color="masculine-3" style="background: linear-gradient(135deg, #004d40, #1e88e5);"></div>
-          <div class="theme-color-option" data-color="feminine-1" style="background: linear-gradient(135deg, #d81b60, #8e24aa);"></div>
-          <div class="theme-color-option" data-color="feminine-2" style="background: linear-gradient(135deg, #8e24aa, #5e35b1);"></div>
-          <div class="theme-color-option" data-color="feminine-3" style="background: linear-gradient(135deg, #5e35b1, #d81b60);"></div>
-        </div>
-      </form>
-    </div>
-    
-    <div class="modal-footer">
-      <button class="btn btn-outline" id="cancelGoal">Cancelar</button>
-      <button class="btn btn-primary" id="saveGoal">Salvar</button>
-    </div>
-  </div>
-</div>
-
+    <!-- Modal de Edição (Similar ao de Adicionar) -->
     <div class="modal-overlay" id="editModal">
+        <div class="modal"> <div class="modal-header"> <h3 class="modal-title">Editar Transação</h3> <button class="modal-close">&times;</button> </div> <div class="modal-body"> <form id="editForm">
+            <div class="form-row"> <div class="form-group"> <label for="editDate">Data</label> <input type="date" id="editDate" class="form-control" required> </div> <div class="form-group"> <label for="editType">Tipo</label> <select id="editType" class="form-control" required> <option value="expense">Gasto</option> <option value="income">Receita</option> </select> </div> </div>
+            <div class="form-group"> <label for="editItem">Descrição</label> <input type="text" id="editItem" class="form-control" required> </div>
+            <div class="form-row"> <div class="form-group"> <label for="editAmount">Valor</label> <input type="number" id="editAmount" class="form-control monetary-input" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="editPaymentMethod">Modalidade</label> <select id="editPaymentMethod" class="form-control" required> <option value="pix">Pix</option> <option value="cash">Dinheiro</option> <option value="card">Conta/Cartão</option> </select> </div> </div>
+            <div class="form-group"> <label for="editCategory">Categoria</label> <select id="editCategory" class="form-control" required> </select> </div>
+        </form> </div> <div class="modal-footer"> <button class="btn btn-outline" id="cancelEdit">Cancelar</button> <button class="btn btn-primary" id="saveEdit">Salvar Alterações</button> </div> </div>
+    </div>
+
+    <!-- >>>>> Modal de Agendamento CORRIGIDO <<<<< -->
+    <div class="modal-overlay" id="scheduledPaymentModal">
         <div class="modal">
-            <div class="modal-header">
-                <h3 class="modal-title">Editar Transação</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            
+            <div class="modal-header"> <h3 class="modal-title">Agendar Pagamento</h3> <button class="modal-close">&times;</button> </div>
             <div class="modal-body">
-                <form id="editForm">
+                <form id="scheduledPaymentForm">
+                    <div class="form-group"> <label for="scheduledItem">Descrição</label> <input type="text" id="scheduledItem" class="form-control" placeholder="Ex: Aluguel Março, Fatura Nubank" required> </div>
+                    <div class="form-row"> <div class="form-group"> <label for="scheduledAmount">Valor</label> <input type="number" id="scheduledAmount" class="form-control monetary-input" placeholder="0,00" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="scheduledDate">Data Venc./Pag.</label> <input type="date" id="scheduledDate" class="form-control" required> </div> </div>
+                    <!-- ***** CAMPO DE CATEGORIA ADICIONADO ***** -->
                     <div class="form-group">
-                        <label for="editDate">Data</label>
-                        <input type="date" id="editDate" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="editItem">Descrição</label>
-                        <input type="text" id="editItem" class="form-control" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="editAmount">Valor</label>
-                        <input type="number" id="editAmount" class="form-control" step="0.01" min="0" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="editType">Tipo</label>
-                        <select id="editType" class="form-control" required>
-                            <option value="expense">Gasto</option>
-                            <option value="income">Receita</option>
+                        <label for="scheduledCategory">Categoria do Agendamento</label>
+                        <select id="scheduledCategory" class="form-control" required>
+                            <!-- Opções serão populadas pelo JS com modo 'scheduled' -->
                         </select>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="editCategory">Categoria</label>
-                        <select id="editCategory" class="form-control" required>
-                            <!-- Categorias serão preenchidas dinamicamente -->
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="editPaymentMethod">Método de Pagamento</label>
-                        <select id="editPaymentMethod" class="form-control" required>
-                            <option value="pix">Pix</option>
-                            <option value="cash">Dinheiro</option>
-                            <option value="card">Cartão</option>
-                        </select>
+                     <!-- ****************************************** -->
+                     <div class="form-group">
+                        <label for="scheduledPaymentMethod">Pagar Usando</label>
+                         <select id="scheduledPaymentMethod" class="form-control" required> <option value="pix">Pix</option> <option value="cash">Dinheiro</option> <option value="card">Conta/Cartão</option> </select>
+                        <small class="form-text text-muted">Se for Fatura do Cartão, use Pix ou Dinheiro.</small>
+                     </div>
+                     <div class="form-group">
+                        <label class="checkbox-container"> <input type="checkbox" id="scheduledAutoDebit"> <span class="checkmark"></span> Tentar débito automático na data </label>
+                         <small class="form-text text-muted">Marque se deseja que o sistema tente registrar o pagamento automaticamente.</small>
                     </div>
                 </form>
             </div>
-            
-            <div class="modal-footer">
-                <button class="btn btn-outline" id="cancelEdit">Cancelar</button>
-                <button class="btn btn-primary" id="saveEdit">Salvar</button>
+            <div class="modal-footer"> <button class="btn btn-outline" id="cancelScheduledPayment">Cancelar</button> <button class="btn btn-primary" id="saveScheduledPayment">Salvar Agendamento</button> </div>
+        </div>
+    </div>
+
+    <!-- Modal Aviso Pagamento Agendado -->
+    <div class="modal-overlay" id="scheduledWarningModal"> <div class="modal modal-warning"> <div class="modal-header"> <h3 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Aviso Importante</h3> <button class="modal-close">&times;</button> </div> <div class="modal-body"> <p> Pagamentos agendados processados (via débito automático ou confirmação manual) criam <strong>transações definitivas</strong>. </p> <p> Você terá <strong>12 horas</strong> após o processamento para <strong>cancelar a transação</strong> gerada (revertendo o efeito financeiro), caso necessário, pela tela de Transações. </p> <hr> <label class="checkbox-container small"> <input type="checkbox" id="dontShowWarningAgain"> <span class="checkmark"></span> Não mostrar novamente </label> </div> <div class="modal-footer"> <button class="btn btn-primary" id="confirmScheduledWarning">Entendi</button> </div> </div> </div>
+
+    <!-- Modal Metas (Adicionar/Editar) -->
+    <div class="modal-overlay" id="goalModal">
+        <div class="modal"> <div class="modal-header"> <h3 class="modal-title">Nova Meta</h3> <button class="modal-close">&times;</button> </div> <div class="modal-body"> <form id="goalForm" class="goal-form">
+            <div class="form-group"> <label for="goalName">Nome da Meta</label> <input type="text" id="goalName" class="form-control" placeholder="Ex: Viagem Japão, Comprar Carro" required> </div>
+            <div class="form-row"> <div class="form-group"> <label for="goalTarget">Valor Total</label> <input type="number" id="goalTarget" class="form-control monetary-input" placeholder="0,00" step="0.01" min="0.01" required> </div> <div class="form-group"> <label for="monthlyContribution">Meta Contribuição Mensal (Opc)</label> <input type="number" id="monthlyContribution" class="form-control monetary-input" placeholder="0,00" step="0.01" min="0"> </div> </div>
+            <div class="form-row"> <div class="form-group"> <label for="goalDate">Data Alvo</label> <input type="date" id="goalDate" class="form-control" required> </div> <div class="form-group"> <label for="goalType">Tipo</label> <select id="goalType" class="form-control" required> <option value="">--Selecione--</option><option value="travel">Viagem</option> <option value="electronics">Eletrônicos</option> <option value="education">Educação</option> <option value="emergency">Emergência</option> <option value="home">Casa</option> <option value="car">Carro</option> <option value="debt">Quitar Dívida</option> <option value="investment">Investimento</option><option value="other">Outro</option> </select> </div> </div>
+            <div class="image-upload-container" onclick="document.getElementById('goalImage')?.click()">
+                 <i class="fas fa-camera"></i> <p>Adicionar Imagem (Opcional)</p> <input type="file" id="goalImage" style="display: none;" accept="image/*">
+                <div class="image-preview-wrapper"> <img id="goalImagePreview" class="goal-form-image-preview" alt="Preview da Meta" style="display: none;"> <button type="button" class="remove-image-btn" style="display:none;">&times;</button> </div>
             </div>
-        </div>
+             <h4>Cor do Tema da Meta</h4> <div class="theme-colors"> <div class="theme-color-option" data-color="masculine-1" style="background: linear-gradient(135deg, #1e88e5, #0d47a1);"></div> <div class="theme-color-option" data-color="masculine-2" style="background: linear-gradient(135deg, #0d47a1, #004d40);"></div> <div class="theme-color-option" data-color="masculine-3" style="background: linear-gradient(135deg, #004d40, #1e88e5);"></div> <div class="theme-color-option" data-color="feminine-1" style="background: linear-gradient(135deg, #d81b60, #8e24aa);"></div> <div class="theme-color-option" data-color="feminine-2" style="background: linear-gradient(135deg, #8e24aa, #5e35b1);"></div> <div class="theme-color-option" data-color="feminine-3" style="background: linear-gradient(135deg, #5e35b1, #d81b60);"></div> </div>
+        </form> </div> <div class="modal-footer"> <button class="btn btn-outline" id="cancelGoal">Cancelar</button> <button class="btn btn-primary" id="saveGoal">Salvar Meta</button> </div> </div>
     </div>
 
-<!-- Modal de Alerta -->
-<div class="modal-overlay" id="alertModal">
-    <div class="modal" style="max-width: 400px;">
-        <div class="modal-header">
-            <h3 class="modal-title">Aviso</h3>
-            <button class="modal-close">&times;</button>
-        </div>
-        
-        <div class="modal-body">
-            <p id="alertMessage"></p>
-        </div>
-        
-        <div class="modal-footer">
-            <button class="btn btn-primary" id="confirmAlert">OK</button>
-        </div>
+    <!-- Modal de Alerta Simples -->
+    <div class="modal-overlay" id="alertModal">
+        <div class="modal modal-small"> <div class="modal-header"> <h3 class="modal-title">Aviso</h3> <button class="modal-close">&times;</button> </div> <div class="modal-body"> <p id="alertMessage"></p> </div> <div class="modal-footer"> <button class="btn btn-primary" id="confirmAlert">OK</button> </div> </div>
     </div>
-</div>
 
+    <!-- Modal de Confirmação -->
     <div class="modal-overlay" id="confirmModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 class="modal-title">Confirmar Exclusão</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            
-            <div class="modal-body">
-                <p>Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.</p>
-            </div>
-            
-            <div class="modal-footer">
-                <button class="btn btn-outline" id="cancelDelete">Cancelar</button>
-                <button class="btn btn-danger" id="confirmDelete">Excluir</button>
-            </div>
-        </div>
+        <div class="modal"> <div class="modal-header"> <h3 class="modal-title">Confirmação</h3> <button class="modal-close">&times;</button> </div> <div class="modal-body"> <p>Tem certeza?</p> </div> <div class="modal-footer"> <button class="btn btn-outline" id="cancelDelete">Cancelar</button> <button class="btn btn-danger" id="confirmDelete">Confirmar</button> </div> </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="js/app.js"></script>
-<script>
-    function removeImage(e) {
-        e.stopPropagation();
-        document.getElementById('goalImage').value = '';
-        document.getElementById('goalImagePreview').style.display = 'none';
-        document.getElementById('goalImagePreview').src = '';
-    }
-</script>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script> <!-- Chart.js v3 -->
+    <script src="js/app.js"></script> <!-- SEU SCRIPT CORRIGIDO ABAIXO -->
+    <script>
+        // Função auxiliar movida para cá para evitar erro se goalModal não estiver visível
+        document.body.addEventListener('click', function(e) {
+            if (e.target && e.target.matches('.remove-image-btn')) {
+                e.stopPropagation();
+                const preview = document.getElementById('goalImagePreview');
+                const input = document.getElementById('goalImage');
+                if (input instanceof HTMLInputElement) input.value = '';
+                if (preview instanceof HTMLImageElement) {
+                     preview.style.display = 'none';
+                    preview.src = '#'; // Limpa src
+                }
+                e.target.style.display = 'none'; // Esconde o botão X
+            }
+             // Listener para botões addGoal (precisa estar visível)
+            if (e.target && (e.target.id === 'addGoalBtnDashboard' || e.target.id === 'addGoalBtnList' || e.target.id === 'addGoalFromEmptyState')) {
+                window.app?.openAddGoalModal?.(); // Chama função global se existir
+            }
+            // Listener para botão addScheduled
+            if (e.target && (e.target.id === 'addScheduledPaymentBtn' || e.target.id === 'addScheduledFromListBtn')) {
+                 window.app?.openScheduledPaymentModal?.(); // Chama função global
+             }
+        });
+
+         // Delegação para seleção de cor de tema em modal Goal (melhor que listener direto)
+        document.body.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('theme-color-option') && e.target.closest('#goalModal')) {
+                 const modal = e.target.closest('#goalModal');
+                if(modal) {
+                    modal.querySelectorAll('.theme-color-option').forEach(o => o.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                 }
+             }
+         });
+
+    </script>
 </body>
 </html>

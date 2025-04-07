@@ -1,1714 +1,389 @@
+ //=============================================================================
+// Gestor Financeiro - app.js - v1.8.2 - Fix: Scheduled Categories Population & Save
+// =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Categorias
-    const categories = {
+    // --- Configurações Globais, Categorias e Mapeamento de Ícones ---
+    const categories = { // Categorias gerais para transações manuais/filtros
         expense: [
-            'Acessórios para casa',
-            'Água',
-            'Alimentação',
-            'Aluguel',
-            'Assinaturas (streamings)',
-            'Condomínio',
-            'Compras de roupas',
-            'Compras online',
-            'Energia',
-            'Farmácia',
-            'Financiamentos',
-            'Faturas (cartão, celular, assinaturas, empréstimos)',
-            'Gás',
-            'Internet',
-            'IPTU',
-            'Lazer',
-            'Lanches (delivery)',
-            'Mensalidades (faculdade, academia)',
-            'Plano de saúde',
-            'Restaurantes',
-            'Saúde',
-            'Seguros',
-            'Tarifas bancárias',
-            'Transporte',
-            'Viagens',
-            'Outros'
+            '-- MORADIA --', 'Aluguel', 'Condomínio', 'Financiamento Imobiliário', 'IPTU', 'Água', 'Energia', 'Gás', 'Internet & Celular', 'Manutenção Residencial', 'Casa & Decoração', 'Eletrodomésticos',
+            '-- ALIMENTAÇÃO --', 'Mercado', 'Restaurantes & Lanches',
+            '-- TRANSPORTE --', 'Transporte Público', 'Combustível', 'Aplicativos de Transporte', 'Manutenção Veículo', 'Seguro Veicular', 'Estacionamento & Pedágio',
+            '-- DESPESAS PESSOAIS --', 'Vestuário & Calçados', 'Saúde', 'Plano de Saúde', 'Farmácia', 'Cuidados Pessoais', 'Educação', 'Academia & Clubes',
+            '-- LAZER & ENTRETENIMENTO --', 'Lazer', 'Viagens', 'Livros, Música & Jogos',
+            '-- SERVIÇOS & FINANCEIRO --', 'Faturas', 'Fatura do cartão', 'Assinaturas & Serviços', 'Empréstimos & Financiamentos', 'Tarifas Bancárias', 'Impostos', 'Seguros (outros)',
+            '-- OUTROS --', 'Presentes (oferecidos)', 'Pet', 'Doações', 'Outras Despesas'
         ],
-        income: [
-            'Salário',
-            'Freelance',
-            'Investimentos',
-            'Bolsa Família',
-            'Aposentadoria',
-            'Pensão',
-            'Aluguel recebido',
-            'Bônus',
-            'Comissões',
-            'Presente',
-            'Outras receitas'
-        ]
+        income: [ 'Salário', '13º Salário', 'Bônus & PLR', 'Serviços / Freelance', 'Vendas & Comissões', 'Investimentos', 'Aluguel Recebido', 'Benefícios Sociais / Auxílios', 'Aposentadoria', 'Pensão', 'Presentes Recebidos', 'Reembolsos', 'Outras Receitas']
     };
-
-    // DOM Elements
-    const sidebar = document.querySelector('.sidebar');
-    const menuToggle = document.querySelector('.menu-toggle');
-    const closeSidebar = document.querySelector('.close-sidebar');
-    const menuItems = document.querySelectorAll('.menu-item');
-    const themeToggle = document.querySelector('.theme-toggle');
-    const themeToggleIcon = themeToggle.querySelector('i:last-child');
-    const body = document.body;
-    const contentSections = document.querySelectorAll('.content-section');
-    
-    // Transaction Elements
-    const transactionModalForm = document.getElementById('transactionModalForm');
-    const modalDateInput = document.getElementById('modalDate');
-    const modalItemInput = document.getElementById('modalItem');
-    const modalAmountInput = document.getElementById('modalAmount');
-    const modalTypeInput = document.getElementById('modalType');
-    const modalCategoryInput = document.getElementById('modalCategory');
-    const modalPaymentMethodInput = document.getElementById('modalPaymentMethod');
-    
-    // Balance Elements
-    const remainingBalancePix = document.getElementById('remainingBalancePix');
-    const remainingBalanceCash = document.getElementById('remainingBalanceCash');
-    const remainingBalanceCard = document.getElementById('remainingBalanceCard');
-    
-    // Settings Elements
-    const saveSettingsBtn = document.getElementById('saveSettings');
-    const saveUserSettingsBtn = document.getElementById('saveUserSettings');
-    
-    // Goals Elements
-    const addGoalBtn = document.getElementById('addGoalBtn');
-    const goalNameInput = document.getElementById('goalName');
-    const goalTargetInput = document.getElementById('goalTarget');
-    const goalDateInput = document.getElementById('goalDate');
-    const goalImageInput = document.getElementById('goalImage');
-    const goalImagePreview = document.getElementById('goalImagePreview');
-    
-    // Modal Elements
-    const transactionModal = document.getElementById('transactionModal');
-    const goalModal = document.getElementById('goalModal');
-    const editModal = document.getElementById('editModal');
-    const confirmModal = document.getElementById('confirmModal');
-    const scheduledPaymentModal = document.getElementById('scheduledPaymentModal');
-    const saveTransactionBtn = document.getElementById('saveTransaction');
-    const cancelTransactionBtn = document.getElementById('cancelTransaction');
-    const saveGoalBtn = document.getElementById('saveGoal');
-    const cancelGoalBtn = document.getElementById('cancelGoal');
-    const addScheduledPaymentBtn = document.getElementById('addScheduledPaymentBtn');
-    const saveScheduledPaymentBtn = document.getElementById('saveScheduledPayment');
-    const cancelScheduledPaymentBtn = document.getElementById('cancelScheduledPayment');
-    const scheduledPaymentForm = document.getElementById('scheduledPaymentForm');
-    const modalCloseBtns = document.querySelectorAll('.modal-close');
-    
-    // Alert Modal Elements
-    const alertModal = document.getElementById('alertModal');
-    const alertMessage = document.getElementById('alertMessage');
-    const confirmAlert = document.getElementById('confirmAlert');
-    
-    // Charts
-    const expensesChartCtx = document.getElementById('expensesChart').getContext('2d');
-    const incomeVsExpensesChartCtx = document.getElementById('incomeVsExpensesChart').getContext('2d');
-    const paymentMethodsChartCtx = document.getElementById('paymentMethodsChart').getContext('2d');
-    
-    let expensesChart, incomeVsExpensesChart, paymentMethodsChart;
-    
-    // Data
-    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-    let goals = JSON.parse(localStorage.getItem('goals')) || [];
-    
-    // Migrar metas antigas para o novo formato
-    if (goals.length > 0 && !goals[0].hasOwnProperty('current')) {
-        goals = goals.map(goal => ({
-            ...goal,
-            current: 0,
-            monthlyContribution: 0,
-            contributions: [],
-            type: 'other',
-            completed: false
-        }));
-        saveGoals();
-    }
-    
-    let upcomingBills = JSON.parse(localStorage.getItem('upcomingBills')) || [];
-    let initialBalances = JSON.parse(localStorage.getItem('initialBalances')) || {
-        pix: 0,
-        cash: 0,
-        card: 0
+    const scheduledPaymentVisibleCategories = [ // Categorias para o *dropdown* de Agendamento
+        { value: '', text: '-- Selecione a Categoria --' },
+        { value: 'Faturas', text: 'Faturas (Geral)' },
+        { value: 'Aluguel', text: 'Aluguel / Financiamento Imob.' },
+        { value: 'Fatura do cartão', text: 'Fatura do Cartão de Crédito' }
+    ];
+    const categoryIconMapping = { /* Como antes */
+        'Aluguel': 'fas fa-file-contract', 'Condomínio': 'fas fa-building', 'Financiamento Imobiliário': 'fas fa-landmark', 'IPTU': 'fas fa-home', 'Água': 'fas fa-tint', 'Energia': 'fas fa-bolt', 'Gás': 'fas fa-burn', 'Internet & Celular': 'fas fa-wifi', 'Manutenção Residencial': 'fas fa-tools', 'Casa & Decoração': 'fas fa-couch', 'Eletrodomésticos': 'fas fa-plug',
+        'Mercado': 'fas fa-shopping-basket', 'Restaurantes & Lanches': 'fas fa-utensils', 'Transporte Público': 'fas fa-bus-alt', 'Combustível': 'fas fa-gas-pump', 'Aplicativos de Transporte': 'fas fa-taxi', 'Manutenção Veículo': 'fas fa-wrench', 'Seguro Veicular': 'fas fa-car-crash', 'Estacionamento & Pedágio': 'fas fa-parking',
+        'Vestuário & Calçados': 'fas fa-tshirt', 'Saúde': 'fas fa-stethoscope', 'Plano de Saúde': 'fas fa-briefcase-medical', 'Farmácia': 'fas fa-pills', 'Cuidados Pessoais': 'fas fa-spa', 'Educação': 'fas fa-graduation-cap', 'Academia & Clubes': 'fas fa-dumbbell',
+        'Lazer': 'fas fa-film', 'Viagens': 'fas fa-plane-departure', 'Livros, Música & Jogos': 'fas fa-book-open',
+        'Faturas': 'fas fa-file-invoice', 'Fatura do cartão': 'fas fa-credit-card', 'Assinaturas & Serviços': 'fas fa-sync-alt', 'Empréstimos & Financiamentos': 'fas fa-file-invoice-dollar', 'Tarifas Bancárias': 'fas fa-piggy-bank', 'Impostos': 'fas fa-landmark', 'Seguros (outros)': 'fas fa-shield-alt',
+        'Presentes (oferecidos)': 'fas fa-gift', 'Pet': 'fas fa-paw', 'Doações': 'fas fa-hand-holding-heart', 'Outras Despesas': 'fas fa-question-circle',
+        'Salário': 'fas fa-money-bill-wave', '13º Salário': 'fas fa-gifts', 'Bônus & PLR': 'fas fa-star', 'Serviços / Freelance': 'fas fa-briefcase', 'Vendas & Comissões': 'fas fa-tags', 'Investimentos': 'fas fa-chart-line', 'Aluguel Recebido': 'fas fa-key', 'Benefícios Sociais / Auxílios': 'fas fa-hands-helping', 'Aposentadoria': 'fas fa-user-clock', 'Pensão': 'fas fa-hand-holding-usd', 'Presentes Recebidos': 'fas fa-hand-holding-heart', 'Reembolsos': 'fas fa-undo-alt', 'Outras Receitas': 'fas fa-plus-circle'
     };
-    let userName = localStorage.getItem('userName') || 'João Silva';
-    let userEmail = localStorage.getItem('userEmail') || 'joao@exemplo.com';
-    let currency = localStorage.getItem('currency') || 'BRL';
-    let selectedThemeColor = localStorage.getItem('themeColor') || 'masculine-1';
-    let currentEditIndex = null;
+    const GRACE_PERIOD_MS = 12 * 60 * 60 * 1000;
 
-    // Initialize
-    function init() {
-        // Set current date as default
-        const today = new Date().toISOString().split('T')[0];
-        modalDateInput.value = today;
-        goalDateInput.value = today;
-        document.getElementById('scheduledDate').value = today;
-        
-        // Load user settings
-        document.getElementById('userName').value = userName;
-        document.getElementById('userEmail').value = userEmail;
-        document.getElementById('currency').value = currency;
-        
-        // Update user profile in sidebar
-        document.querySelector('.user-name').textContent = userName;
-        document.querySelector('.user-email').textContent = userEmail;
-        
-        // Setup category dropdowns
-        updateCategoryDropdowns();
-        
-        // Load data
-        updateBalanceDisplay();
-        updateBalanceDisplays();
-        renderTransactionHistory();
-        renderAllTransactions();
-        updateCharts();
-        renderGoals();
-        renderUpcomingBills();
-        
-        // Verificar pagamentos agendados
-        checkScheduledPayments();
-        
-        // Check empty state
-        checkEmptyState();
-        
-        // Setup event listeners
-        setupEventListeners();
-        
-        // Apply selected theme color
-        applyThemeColor();
-        
-        // Show dashboard by default
-        showSection('dashboard');
-        
-        // Alert modal event listener
-        confirmAlert.addEventListener('click', () => {
-            alertModal.classList.remove('active');
-        });
+    // --- Funções Utilitárias ---
+    function getLocalDateString(date = new Date()) { /*...*/ try { const d=date instanceof Date&&!isNaN(date)?date:new Date(); const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0'); const dy=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dy}` } catch(e){ const t=new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`}}
+    function formatDisplayDate(dateString) { /*...*/ if (!dateString || typeof dateString !== 'string' || !dateString.includes('-')) return "Inválida"; const p=dateString.split('-'); if(p.length!==3) return "Inválida"; const [y,m,d]=p; return isNaN(parseInt(y))||isNaN(parseInt(m))||isNaN(parseInt(d))?"Inválida":`${d}/${m}/${y}` }
+    function parseDateInput(dateString) { /*...*/ if (!dateString || typeof dateString !== 'string' || !dateString.includes('-')) return new Date(); const p=dateString.split('-'); if(p.length!==3) return new Date(); const [y,m,d]=p.map(Number); return isNaN(y)||isNaN(m)||isNaN(d)||m<1||m>12||d<1||d>31? new Date() : new Date(y,m-1,d) }
+    function getMonthName(monthIndex) { /*...*/ const m=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']; const v=Math.max(0,Math.min(11, monthIndex)); return m[v]; }
+    function formatCurrency(value) { /*...*/ if(valuesHidden) return'R$ ***'; if(typeof value !== 'number' || isNaN(value)) { value=parseFloat(String(value).replace(',','.'))||0; } return value.toLocaleString('pt-BR', {style:'currency', currency: currency || 'BRL', minimumFractionDigits:2, maximumFractionDigits:2}) }
+    function formatPlaceholderCurrency() { /*...*/ return valuesHidden?'***':'Valor R$'; }
+    function showAlert(message, type = 'info') { /*...*/ if(alertModal && alertMessage && confirmAlert) { alertMessage.textContent = message; alertModal.className = `modal-overlay modal-alert-${type} active`; confirmAlert.className = `btn btn-${type === 'danger' ? 'danger' : 'primary'}`; const titleEl = alertModal.querySelector('.modal-title'); if(titleEl) titleEl.textContent = type === 'danger' ? 'Erro' : (type === 'warning' ? 'Atenção' : 'Aviso'); alertModal.classList.add('active'); } else { window.alert(message); } }
+    function showConfirmModal(message) { /*...*/ return new Promise((res) => { if(!confirmModal) { res(window.confirm(message)); return; } const m=confirmModal.querySelector('.modal-body p'); const ok=document.getElementById('confirmDelete'); const ca=document.getElementById('cancelDelete'); const cl=confirmModal.querySelector('.modal-close'); if(!m||!ok||!ca||!cl){res(window.confirm(message));return;} m.innerHTML=message; confirmModal.classList.add('active'); const clean = ()=>{ok.removeEventListener('click',hO);ca.removeEventListener('click',hC);cl.removeEventListener('click',hC);confirmModal.classList.remove('active');}; const hO = ()=>{clean();res(true);}; const hC = ()=>{clean();res(false);}; ok.onclick = hO; ca.onclick = hC; cl.onclick = hC; }); }
+    function showSuccessFeedback(button, message) { /*...*/ if(!button) return; const oH=button.innerHTML;const oC=button.className;const wD=button.disabled;button.innerHTML=`<i class="fas fa-check"></i> ${message}`;button.disabled=true;button.className='btn btn-success';setTimeout(()=>{button.innerHTML=oH;button.className=oC;button.disabled=wD;},2000);}
+    function isWithinGracePeriod(timestamp) { /*...*/ return timestamp && (Date.now() - timestamp < GRACE_PERIOD_MS); }
+    function showScheduledPaymentWarningModal() { /*...*/ return new Promise((resolve)=>{ const wM=safeGetElementById('scheduledWarningModal'); if(!wM || hideScheduledPaymentWarning) { resolve(); return; } const cB=wM.querySelector('#confirmScheduledWarning'); const clB=wM.querySelector('.modal-close'); const dS=wM.querySelector('#dontShowWarningAgain'); if(!cB||!clB||!(dS instanceof HTMLInputElement)){resolve();return;} dS.checked=false; const closeH = ()=>{if(dS.checked){hideScheduledPaymentWarning=true;localStorage.setItem('hideScheduledPaymentWarning','true');} wM.classList.remove('active');cB.removeEventListener('click',closeH);clB.removeEventListener('click',closeH);resolve();}; cB.addEventListener('click', closeH, {once: true}); clB.addEventListener('click', closeH, {once: true}); wM.classList.add('active'); }); }
 
-        checkGoalsProgress();
-        setInterval(checkGoalsProgress, 86400000); // 24 horas
+    // --- Seletores DOM ---
+    const safeGetElementById = (id) => document.getElementById(id);
+    const safeQuerySelector = (selector) => document.querySelector(selector);
+    const body = document.body; const sidebar = safeQuerySelector('.sidebar'); const menuToggle = safeQuerySelector('.menu-toggle'); const closeSidebar = safeQuerySelector('.close-sidebar'); const themeToggle = safeQuerySelector('.theme-toggle'); const themeToggleIcon = themeToggle ? themeToggle.querySelector('i.fa-toggle-off, i.fa-toggle-on') : null; const valueToggle = safeGetElementById('valueToggle'); const valueToggleIcon = valueToggle ? valueToggle.querySelector('i') : null; const addTransactionFab = safeGetElementById('addTransactionBtn'); const pageTitleElement = safeQuerySelector('.page-title'); const menuItems = document.querySelectorAll('.sidebar-menu .menu-item'); const contentSections = document.querySelectorAll('.main-content .content-section');
+    // Balances Display
+    const remainingBalancePix = safeGetElementById('remainingBalancePix'); const remainingBalanceCash = safeGetElementById('remainingBalanceCash'); const remainingBalanceCard = safeGetElementById('remainingBalanceCard');
+    // Transaction Modal
+    const transactionModal = safeGetElementById('transactionModal'); const transactionModalForm = safeGetElementById('transactionModalForm'); const modalDateInput = safeGetElementById('modalDate'); const modalItemInput = safeGetElementById('modalItem'); const modalAmountInput = safeGetElementById('modalAmount'); const modalTypeInput = safeGetElementById('modalType'); const modalCategoryInput = safeGetElementById('modalCategory'); const modalPaymentMethodInput = safeGetElementById('modalPaymentMethod'); const saveTransactionBtn = safeGetElementById('saveTransaction'); const cancelTransactionBtn = safeGetElementById('cancelTransaction');
+    // Edit Modal
+    const editModal = safeGetElementById('editModal'); const editForm = safeGetElementById('editForm'); const editDateInput = safeGetElementById('editDate'); const editItemInput = safeGetElementById('editItem'); const editAmountInput = safeGetElementById('editAmount'); const editTypeInput = safeGetElementById('editType'); const editCategoryInput = safeGetElementById('editCategory'); const editPaymentMethodInput = safeGetElementById('editPaymentMethod'); const saveEditBtn = safeGetElementById('saveEdit'); const cancelEditBtn = safeGetElementById('cancelEdit');
+    // Scheduled Payment Modal - <<< CONFIRMADO HTML ADICIONOU ID 'scheduledCategory' >>>
+    const scheduledPaymentModal = safeGetElementById('scheduledPaymentModal'); const scheduledPaymentForm = safeGetElementById('scheduledPaymentForm'); const scheduledItemInput = safeGetElementById('scheduledItem'); const scheduledAmountInput = safeGetElementById('scheduledAmount'); const scheduledDateInput = safeGetElementById('scheduledDate'); const scheduledCategoryInput = safeGetElementById('scheduledCategory'); // Deve encontrar agora
+    const scheduledPaymentMethodInput = safeGetElementById('scheduledPaymentMethod'); const scheduledAutoDebitInput = safeGetElementById('scheduledAutoDebit'); const saveScheduledPaymentBtn = safeGetElementById('saveScheduledPayment'); const cancelScheduledPaymentBtn = safeGetElementById('cancelScheduledPayment');
+    // Goal Modal
+    const goalModal = safeGetElementById('goalModal'); const goalForm = safeGetElementById('goalForm'); const goalNameInput = safeGetElementById('goalName'); const goalTargetInput = safeGetElementById('goalTarget'); const monthlyContributionInput = safeGetElementById('monthlyContribution'); const goalDateInput = safeGetElementById('goalDate'); const goalTypeInput = safeGetElementById('goalType'); const goalImageInput = safeGetElementById('goalImage'); const goalImagePreview = safeGetElementById('goalImagePreview'); const removeGoalImageBtn = goalModal ? goalModal.querySelector('.remove-image-btn') : null; const saveGoalBtn = safeGetElementById('saveGoal'); const cancelGoalBtn = safeGetElementById('cancelGoal');
+    // Add Buttons (Pode precisar de ajuste nos IDs se usar mais de um)
+    const addGoalBtns = document.querySelectorAll('#addGoalBtnDashboard, #addGoalBtnList, #addGoalFromEmptyState'); // Pegar todos
+    const addScheduledPaymentBtn = safeGetElementById('addScheduledPaymentBtn');
+    const addScheduledFromListBtn = safeGetElementById('addScheduledFromListBtn'); // Botão na lista
+    // Settings
+    const settingsSection = safeGetElementById('settings-section'); const initialBalancePixInput = safeGetElementById('initialBalancePix'); const initialBalanceCashInput = safeGetElementById('initialBalanceCash'); const initialBalanceCardInput = safeGetElementById('initialBalanceCard'); const pixBalanceDisplay = safeGetElementById('pixBalanceDisplay'); const cashBalanceDisplay = safeGetElementById('cashBalanceDisplay'); const cardBalanceDisplay = safeGetElementById('cardBalanceDisplay'); const saveSettingsBtn = safeGetElementById('saveSettings'); const userNameInput = safeGetElementById('userName'); const userEmailInput = safeGetElementById('userEmail'); const currencyInput = safeGetElementById('currency'); const saveUserSettingsBtn = safeGetElementById('saveUserSettings'); const exportDataBtn = safeGetElementById('exportDataBtn'); const importDataBtn = safeGetElementById('importDataBtn'); const importDataInput = safeGetElementById('importDataInput');
+    // Modals (Alerts, Confirm)
+    const alertModal = safeGetElementById('alertModal'); const alertMessage = safeGetElementById('alertMessage'); const confirmAlert = safeGetElementById('confirmAlert'); const confirmModal = safeGetElementById('confirmModal'); const scheduledWarningModal = safeGetElementById('scheduledWarningModal');
+    // Containers
+    const transactionHistoryContainer = safeGetElementById('transactionHistory'); const allTransactionsContainer = safeGetElementById('allTransactions'); const upcomingBillsContainer = safeGetElementById('upcomingBills'); const allScheduledPaymentsListContainer = safeGetElementById('allScheduledPaymentsList'); const goalsListContainer = safeGetElementById('goalsList'); const dashboardEmptyState = safeGetElementById('emptyState'); const transactionsEmptyState = safeGetElementById('emptyState2'); const goalsSummaryContainer = safeQuerySelector('.goals-summary');
+    // Canvas
+    const getCanvasAndContext = (id) => { const c = safeGetElementById(id); const ctx = c?.getContext('2d'); return ctx ? { canvas: c, ctx } : { canvas: c, ctx: null }; };
+    const { ctx: expChartCtx } = getCanvasAndContext('expensesChart'); const { ctx: incExpChartCtx } = getCanvasAndContext('incomeVsExpensesChart'); const { ctx: payMethChartCtx } = getCanvasAndContext('paymentMethodsChart');
+    const { ctx: expChartCtx2 } = getCanvasAndContext('expensesChart2'); const { ctx: incExpChartCtx2 } = getCanvasAndContext('incomeVsExpensesChart2'); const { ctx: payMethChartCtx2 } = getCanvasAndContext('paymentMethodsChart2'); const { ctx: monHistChartCtx } = getCanvasAndContext('monthlyHistoryChart');
+    let expensesChart, incomeVsExpensesChart, paymentMethodsChart; let expensesChart2, incomeVsExpensesChart2, paymentMethodsChart2, monthlyHistoryChart;
 
-        // Atualizar resumo de metas
-        updateGoalsSummary();
-    }
-    
-    // Setup Event Listeners
-    function setupEventListeners() {
-        // Menu Toggle
-        menuToggle.addEventListener('click', toggleSidebar);
-        closeSidebar.addEventListener('click', toggleSidebar);
-        
-        // Menu Items
-        menuItems.forEach(item => {
-            item.addEventListener('click', () => {
-                const section = item.dataset.section;
-                showSection(section);
-                toggleSidebar();
-            });
-        });
-        
-        // Theme Toggle
-        themeToggle.addEventListener('click', toggleTheme);
-        
-        // Transaction Modal Form
-        saveTransactionBtn.addEventListener('click', addTransactionFromModal);
-        cancelTransactionBtn.addEventListener('click', () => closeModal(transactionModal));
-        modalTypeInput.addEventListener('change', () => updateCategoryDropdowns());
-        
-        // Goal Modal
-        if (addGoalBtn) addGoalBtn.addEventListener('click', openAddGoalModal);
-        if (saveGoalBtn) saveGoalBtn.addEventListener('click', saveGoal);
-        if (cancelGoalBtn) cancelGoalBtn.addEventListener('click', () => closeModal(goalModal));
-        
-        // Image preview for goal
-        if (goalImageInput) {
-            goalImageInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        goalImagePreview.src = event.target.result;
-                        goalImagePreview.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-        
-        // Theme color selection
-        document.querySelectorAll('.theme-color-option').forEach(option => {
-            option.addEventListener('click', function() {
-                document.querySelectorAll('.theme-color-option').forEach(opt => opt.classList.remove('selected'));
-                this.classList.add('selected');
-            });
-        });
-        
-        // Settings
-        if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveSettings);
-        if (saveUserSettingsBtn) saveUserSettingsBtn.addEventListener('click', saveUserSettings);
-        
-        // Balance method buttons
-        document.querySelectorAll('.balance-method-btn').forEach(btn => {
-            btn.addEventListener('click', handleBalanceAction);
-        });
-        
-        // Scheduled Payments
-        if (addScheduledPaymentBtn) addScheduledPaymentBtn.addEventListener('click', openScheduledPaymentModal);
-        if (saveScheduledPaymentBtn) saveScheduledPaymentBtn.addEventListener('click', saveScheduledPayment);
-        if (cancelScheduledPaymentBtn) cancelScheduledPaymentBtn.addEventListener('click', () => closeModal(scheduledPaymentModal));
-        
-        // Floating action button
-        document.getElementById('addTransactionBtn').addEventListener('click', openAddTransactionModal);
-        
-        // Close modals when clicking outside
-        document.querySelectorAll('.modal-overlay').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    closeModal(modal);
-                }
-            });
-        });
-        
-        // Close modals with close buttons
-        modalCloseBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const modal = btn.closest('.modal-overlay');
-                closeModal(modal);
-            });
-        });
+    // --- Aplicação State --- (Sem alterações)
+    let transactions = []; let goals = []; let upcomingBills = []; let initialBalances = { pix: 0, cash: 0, card: 0 }; let userName = 'Usuário'; let userEmail = 'email@exemplo.com'; let currency = 'BRL'; let selectedThemeColor = 'masculine-1'; let currentTheme = 'light'; let currentEditIndex = null; let valuesHidden = false; let hideScheduledPaymentWarning = false;
 
-        // Filter events
-        document.getElementById('filterType2').addEventListener('change', filterTransactions);
-        document.getElementById('filterCategory2').addEventListener('change', filterTransactions);
-        document.getElementById('filterPayment2').addEventListener('change', filterTransactions);
-        document.getElementById('searchInput2').addEventListener('input', filterTransactions);
-        document.getElementById('clearFilters2').addEventListener('click', clearFilters);
-        
-        // Edit and Delete handlers
-        document.getElementById('confirmDelete').addEventListener('click', confirmDeleteTransaction);
-        document.getElementById('cancelDelete').addEventListener('click', () => closeModal(confirmModal));
-        document.getElementById('saveEdit').addEventListener('click', saveEditedTransaction);
-        document.getElementById('cancelEdit').addEventListener('click', () => closeModal(editModal));
-        
-        // Event delegation for goal actions
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('edit-goal') || e.target.closest('.edit-goal')) {
-                const goalItem = e.target.closest('.goal-item');
-                const goalId = parseInt(goalItem.dataset.id);
-                const goalIndex = goals.findIndex(g => g.id === goalId);
-                if (goalIndex !== -1) {
-                    openEditGoalModal(goalIndex);
-                }
-            }
-            
-            if (e.target.classList.contains('delete-goal') || e.target.closest('.delete-goal')) {
-                const goalItem = e.target.closest('.goal-item');
-                const goalId = parseInt(goalItem.dataset.id);
-                const goalIndex = goals.findIndex(g => g.id === goalId);
-                if (goalIndex !== -1) {
-                    deleteGoal(goalIndex);
-                }
-            }
-            
-            if (e.target.classList.contains('complete-goal-btn') || e.target.closest('.complete-goal-btn')) {
-                const goalItem = e.target.closest('.goal-item');
-                const goalId = parseInt(goalItem.dataset.id);
-                completeGoal(goalId);
-            }
-        });
-    }
-    
-    // Função para mostrar alertas em modal
-    async function showAlert(message) {
-        alertMessage.textContent = message;
-        alertModal.classList.add('active');
-        
-        return new Promise((resolve) => {
-            const handler = () => {
-                alertModal.classList.remove('active');
-                confirmAlert.removeEventListener('click', handler);
-                resolve();
-            };
-            confirmAlert.addEventListener('click', handler);
-        });
-    }
-    
-    // Função para mostrar confirmações em modal
-    async function showConfirmModal(message) {
-        alertMessage.textContent = message;
-        alertModal.classList.add('active');
-        
-        return new Promise((resolve) => {
-            const handler = () => {
-                alertModal.classList.remove('active');
-                confirmAlert.removeEventListener('click', handler);
-                resolve(true);
-            };
-            const cancelHandler = () => {
-                alertModal.classList.remove('active');
-                document.querySelector('#alertModal .modal-close').removeEventListener('click', cancelHandler);
-                resolve(false);
-            };
-            confirmAlert.addEventListener('click', handler);
-            document.querySelector('#alertModal .modal-close').addEventListener('click', cancelHandler);
-        });
-    }
-    
-    // Verificar pagamentos agendados
-    function checkScheduledPayments() {
-        const today = new Date().toISOString().split('T')[0];
-        let needsUpdate = false;
-        
-        upcomingBills.forEach((bill, index) => {
-            if (bill.date <= today && !bill.paid) {
-                if (bill.autoDebit) {
-                    // Processar débito automático
-                    processScheduledPayment(index);
-                    needsUpdate = true;
-                } else if (!bill.pending) {
-                    // Marcar como pendente de confirmação
-                    upcomingBills[index].pending = true;
-                    needsUpdate = true;
-                }
-            }
-        });
-        
-        if (needsUpdate) {
-            saveUpcomingBills();
-            renderUpcomingBills();
-        }
-    }
-    
-    // Processar pagamento agendado
-    async function processScheduledPayment(index) {
-        const bill = upcomingBills[index];
-        
-        // Verificar saldo
-        const { currentPix, currentCash, currentCard } = calculateCurrentBalances();
-        let hasBalance = true;
-        
-        if (bill.paymentMethod === 'pix' && bill.amount > currentPix) {
-            hasBalance = false;
-        } else if (bill.paymentMethod === 'cash' && bill.amount > currentCash) {
-            hasBalance = false;
-        } else if (bill.paymentMethod === 'card' && bill.amount > currentCard) {
-            hasBalance = false;
-        }
-        
-        if (hasBalance) {
-            // Adicionar transação
-            const transaction = {
-                id: Date.now(),
-                date: bill.date,
-                item: bill.name,
-                amount: bill.amount,
-                type: 'expense',
-                category: 'Faturas (cartão, celular, assinaturas, empréstimos)',
-                paymentMethod: bill.paymentMethod,
-                isScheduled: true
-            };
-            
-            transactions.push(transaction);
-            upcomingBills[index].paid = true;
-            upcomingBills[index].processedDate = new Date().toISOString().split('T')[0];
-            upcomingBills[index].pending = false;
-            upcomingBills[index].insufficientBalance = false;
-            
-            saveTransactions();
-            saveUpcomingBills();
-            renderTransactionHistory();
-            renderAllTransactions();
-            updateBalanceDisplay();
-            updateCharts();
+    // --- Funções Principais (Load/Save) ---
+    function loadDataFromStorage() { try { transactions = JSON.parse(localStorage.getItem('transactions')) || []; goals = JSON.parse(localStorage.getItem('goals')) || []; upcomingBills = JSON.parse(localStorage.getItem('upcomingBills')) || []; initialBalances = JSON.parse(localStorage.getItem('initialBalances')) || { pix: 0, cash: 0, card: 0 }; transactions.forEach(t => { t.amount = parseFloat(String(t.amount).replace(',', '.')) || 0; }); goals.forEach(g => { g.target = parseFloat(String(g.target).replace(',', '.')) || 0; g.current = parseFloat(String(g.current).replace(',', '.')) || 0; g.monthlyContribution = parseFloat(String(g.monthlyContribution).replace(',', '.')) || 0; if (g.goalType && !g.type) { g.type = g.goalType; delete g.goalType; } g.contributions = Array.isArray(g.contributions) ? g.contributions.map(c => ({ ...c, amount: parseFloat(String(c.amount).replace(',', '.')) || 0 })) : []; }); upcomingBills.forEach(b => { b.amount = parseFloat(String(b.amount).replace(',', '.')) || 0; const validScheduledCats = scheduledPaymentVisibleCategories.map(cat => cat.value).filter(Boolean); if (!b.category || !validScheduledCats.includes(b.category)) { if (b.category?.toLowerCase().includes('aluguel') || b.category?.toLowerCase().includes('financiamento imob')) { b.category = 'Aluguel'; } else if (b.category?.toLowerCase().includes('fatura') && b.category?.toLowerCase().includes('cart')) { b.category = 'Fatura do cartão'; } else { b.category = 'Faturas'; } } if (b.category === 'Fatura do cartão' && b.paymentMethod === 'card') { b.paymentMethod = 'pix'; } if (b.processedTimestamp) { b.processedTimestamp = parseInt(b.processedTimestamp, 10) || null; } b.processedDate = b.processedDate || null; }); } catch (e) { console.error("Load Err:", e); showAlert("Erro ao carregar dados.", 'danger'); transactions = []; goals = []; upcomingBills = []; initialBalances = { pix: 0, cash: 0, card: 0 }; } userName = localStorage.getItem('userName') || 'Usuário'; userEmail = localStorage.getItem('userEmail') || 'email@exemplo.com'; currency = localStorage.getItem('currency') || 'BRL'; selectedThemeColor = localStorage.getItem('themeColor') || 'masculine-1'; currentTheme = localStorage.getItem('theme') || 'light'; valuesHidden = localStorage.getItem('valuesHidden') === 'true'; hideScheduledPaymentWarning = localStorage.getItem('hideScheduledPaymentWarning') === 'true'; }
+    function saveDataToStorage() { try { localStorage.setItem('transactions', JSON.stringify(transactions)); localStorage.setItem('goals', JSON.stringify(goals)); localStorage.setItem('upcomingBills', JSON.stringify(upcomingBills)); localStorage.setItem('initialBalances', JSON.stringify(initialBalances)); localStorage.setItem('userName', userName); localStorage.setItem('userEmail', userEmail); localStorage.setItem('currency', currency); localStorage.setItem('themeColor', selectedThemeColor); localStorage.setItem('theme', currentTheme); localStorage.setItem('valuesHidden', String(valuesHidden)); localStorage.setItem('hideScheduledPaymentWarning', String(hideScheduledPaymentWarning)); } catch (e) { console.error("Save Err:", e); showAlert("Erro ao salvar dados.", 'danger'); } }
+
+    // --- Funções de Atualização da UI ---
+    function updateBalanceDisplay() { /* ... */ if(!remainingBalancePix||!remainingBalanceCash||!remainingBalanceCard)return;const{currentPix:p,currentCash:c,currentCard:d}=calculateCurrentBalances();remainingBalancePix.innerHTML=`<span class="monetary-value">${formatCurrency(p)}</span>`;remainingBalanceCash.innerHTML=`<span class="monetary-value">${formatCurrency(c)}</span>`;remainingBalanceCard.innerHTML=`<span class="monetary-value">${formatCurrency(d)}</span>`;const rpCard=remainingBalancePix.closest('.card');const rcCard=remainingBalanceCash.closest('.card');const rdCard=remainingBalanceCard.closest('.card');if(rpCard){rpCard.classList.toggle('card-negative',p<0);rpCard.classList.toggle('card-positive',p>=0);}if(rcCard){rcCard.classList.toggle('card-negative',c<0);rcCard.classList.toggle('card-positive',c>=0);}if(rdCard){rdCard.classList.toggle('card-negative',d<0);rdCard.classList.toggle('card-positive',d>=0);} }
+    function updateBalanceDisplays() { /* ... */ if(pixBalanceDisplay&&initialBalancePixInput instanceof HTMLInputElement)pixBalanceDisplay.innerHTML=`<span class="monetary-value">${formatCurrency(parseFloat(String(initialBalancePixInput.value||'0').replace(',','.'))||0)}</span>`;if(cashBalanceDisplay&&initialBalanceCashInput instanceof HTMLInputElement)cashBalanceDisplay.innerHTML=`<span class="monetary-value">${formatCurrency(parseFloat(String(initialBalanceCashInput.value||'0').replace(',','.'))||0)}</span>`;if(cardBalanceDisplay&&initialBalanceCardInput instanceof HTMLInputElement)cardBalanceDisplay.innerHTML=`<span class="monetary-value">${formatCurrency(parseFloat(String(initialBalanceCardInput.value||'0').replace(',','.'))||0)}</span>`; }
+    function renderTransactionHistory() { /* ... */ if(!transactionHistoryContainer)return;transactionHistoryContainer.innerHTML='';const recent=[...transactions].sort((a,b)=>parseDateInput(b.date)-parseDateInput(a.date)||Number(b.id)-Number(a.id)).slice(0,5);if(recent.length===0){if(dashboardEmptyState)dashboardEmptyState.style.display='flex';return;}if(dashboardEmptyState)dashboardEmptyState.style.display='none';recent.forEach(t=>{const i=transactions.findIndex(x=>x.id===t.id);if(i!==-1)transactionHistoryContainer.appendChild(createTransactionElement(t,i,false));});}
+    function renderAllTransactions(transToRender = transactions) { /* ... */ if(!allTransactionsContainer)return;allTransactionsContainer.innerHTML='';const sorted=[...transToRender].sort((a,b)=>parseDateInput(b.date)-parseDateInput(a.date)||Number(b.id)-Number(a.id));if(sorted.length===0){if(transactionsEmptyState)transactionsEmptyState.style.display='flex';return;}if(transactionsEmptyState)transactionsEmptyState.style.display='none';sorted.forEach(t=>{const i=transactions.findIndex(x=>x.id===t.id);if(i!==-1)allTransactionsContainer.appendChild(createTransactionElement(t,i,true));});}
+    function renderUpcomingBills() { /* ... */ if(!upcomingBillsContainer)return;upcomingBillsContainer.innerHTML='';const upcoming=upcomingBills.filter(b=>!b.paid).sort((a,b)=>parseDateInput(a.date)-parseDateInput(b.date)||a.id-b.id).slice(0,5);if(upcoming.length===0){upcomingBillsContainer.innerHTML=`<div class="empty-state info" style="padding:1rem;"><i class="fas fa-calendar-check"></i><p>Nenhum pag. próximo</p></div>`;return;}upcoming.forEach(b=>{const i=upcomingBills.findIndex(x=>x.id===b.id);if(i!==-1)upcomingBillsContainer.appendChild(createBillElement(b,i,false));});}
+    function renderAllScheduledPayments() { /* ... */ if(!allScheduledPaymentsListContainer)return;allScheduledPaymentsListContainer.innerHTML='';const sorted=[...upcomingBills].sort((a,b)=>parseDateInput(b.date)-parseDateInput(a.date)||b.id-a.id);if(sorted.length===0){allScheduledPaymentsListContainer.innerHTML=`<div class="empty-state info" style="padding:2rem;"><i class="fas fa-calendar-plus"></i><p>Nenhum agendamento.</p></div>`;return;}sorted.forEach(b=>{const i=upcomingBills.findIndex(x=>x.id===b.id);if(i!==-1)allScheduledPaymentsListContainer.appendChild(createBillElement(b,i,true));});}
+    function renderGoals() { /* ... */ if(!goalsListContainer)return;goalsListContainer.innerHTML='';if(goals.length===0){goalsListContainer.innerHTML=`<div class="empty-state info" style="padding:2rem;"><i class="fas fa-flag-checkered"></i><h3>Nenhuma meta</h3><button class="btn btn-primary" id="addGoalFromEmptyState"><i class="fas fa-plus"></i> Criar Meta</button></div>`;return;}const actG=goals.filter(g=>!g.completed).sort((a,b)=>parseDateInput(a.date)-parseDateInput(b.date));const compG=goals.filter(g=>g.completed).sort((a,b)=>parseDateInput(b.completedAt||'9999-12-31')-parseDateInput(a.completedAt||'9999-12-31'));actG.forEach(g=>{const i=goals.findIndex(x=>x.id===g.id);if(i!==-1)goalsListContainer.appendChild(createGoalElement(g,i));});if(compG.length>0){const cS=document.createElement('div');cS.className='completed-goals-section';cS.innerHTML=`<h3 class="completed-goals-title">Metas Concluídas <i class="fas fa-check-double"></i></h3>`;compG.forEach(g=>{const i=goals.findIndex(x=>x.id===g.id);if(i!==-1)cS.appendChild(createGoalElement(g,i));});goalsListContainer.appendChild(cS);}updateGoalsSummary();}
+    function updateGoalsSummary() { /* ... */ if(!goalsSummaryContainer)return;const aG=goals.filter(g=>!g.completed);const cGC=goals.length-aG.length;let tA=aG.length;let tSA=aG.reduce((s,g)=>s+g.current,0);let tTA=aG.reduce((s,g)=>s+g.target,0);let tNA=Math.max(0,tTA-tSA);goalsSummaryContainer.innerHTML=`<div class="goals-summary-grid"> <div class="summary-card"><div class="summary-icon"><i class="fas fa-tasks"></i></div><div class="summary-text"><h4>Ativas</h4><div class="summary-value">${tA}</div></div></div><div class="summary-card"><div class="summary-icon"><i class="fas fa-piggy-bank"></i></div><div class="summary-text"><h4>Economizado</h4><div class="summary-value"><span class="monetary-value">${formatCurrency(tSA)}</span></div></div></div><div class="summary-card"><div class="summary-icon"><i class="fas fa-coins"></i></div><div class="summary-text"><h4>Falta</h4><div class="summary-value"><span class="monetary-value">${formatCurrency(tNA)}</span></div></div></div><div class="summary-card"><div class="summary-icon"><i class="fas fa-check-double"></i></div><div class="summary-text"><h4>Concluídas</h4><div class="summary-value">${cGC}</div></div></div></div> ${aG.length>0?`<div class="goals-priority"> <h4>Próximas Metas</h4> ${aG.sort((a,b)=>parseDateInput(a.date)-parseDateInput(b.date)).slice(0,3).map(g=>`<div class="priority-item"><div class="priority-name">${g.name}</div> <div class="priority-date">${formatDisplayDate(g.date)}</div> <div class="priority-progress"> <div class="progress-bar" style="width: ${Math.min((g.target>0?g.current/g.target:0)*100,100)}%"></div> </div> </div>`).join('')} </div>`:''}`; }
+    // <<< CORRIGIDO E LOGANDO updateCategoryDropdowns >>>
+    function updateCategoryDropdowns(selectElement, mode) {
+        if (!selectElement) { console.error(`updateCategoryDropdowns: selectElement é null para mode "${mode}"`); return; }
+        selectElement.innerHTML = ''; // Limpa sempre
+        let categoryList = []; let includeTitles = false; let blankOptionText = '-- Selecione --';
+
+        if (mode === 'expense' || mode === 'income') {
+            categoryList = mode === 'expense' ? categories.expense : categories.income;
+            includeTitles = mode === 'expense';
+            selectElement.innerHTML = `<option value="" disabled selected>${blankOptionText}</option>`;
+            categoryList.forEach(cat => { if (cat.startsWith('-- ') && includeTitles) selectElement.innerHTML += `<option disabled class="category-title-option">${cat}</option>`; else if (!cat.startsWith('-- ')) selectElement.innerHTML += `<option value="${cat}">${cat}</option>`; });
+        } else if (mode === 'filter') {
+            categoryList = [...new Set([...categories.expense, ...categories.income])].filter(cat => !cat.startsWith('-- ')).sort((a, b) => a.localeCompare(b));
+            selectElement.innerHTML = `<option value="all">Todas Categorias</option>` + categoryList.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+        } else if (mode === 'scheduled') {
+             console.log(`Populando dropdown de Agendamento (ID: ${selectElement.id})...`); // DEBUG
+            scheduledPaymentVisibleCategories.forEach(cat => {
+                const option = document.createElement('option');
+                 option.value = cat.value; option.textContent = cat.text;
+                 if (cat.value === '') { option.disabled = true; option.selected = true; } // Seleciona o placeholder
+                selectElement.appendChild(option);
+                 console.log(` - Anexado Opção: value="${cat.value}", text="${cat.text}"`); // DEBUG
+            });
+             console.log("Dropdown de agendamento populado."); // DEBUG
         } else {
-            // Saldo insuficiente - marcar como pendente
-            upcomingBills[index].pending = true;
-            upcomingBills[index].insufficientBalance = true;
-            saveUpcomingBills();
+            console.warn(`updateCategoryDropdowns: Modo inválido "${mode}"`); selectElement.innerHTML = `<option value="" disabled selected>-- Modo Inválido --</option>`;
         }
-        
-        renderUpcomingBills();
     }
-    
-    // Confirmar pagamento manual
-    async function payScheduledBill(index) {
-        await processScheduledPayment(index);
+
+
+    // --- Criação de Elementos HTML Dinâmicos ---
+    function createTransactionElement(transaction, index, showActions) { /* ... Sem alteração essencial */ const div=document.createElement('div');div.className=`transaction-item ${transaction.isScheduled?'is-scheduled-transaction':''}`;div.dataset.index=index;div.dataset.id=transaction.id;const isInc=transaction.type==='income';let catIcon=categoryIconMapping[transaction.category]||'fas fa-question-circle';if(transaction.category==='Fatura do cartão'&&isInc)catIcon='fas fa-credit-card';const iconBg=isInc?'bg-success':'bg-danger';const amtCls=isInc?'amount-positive':'amount-negative';const amtPfx=isInc?'+':'-';let pmIcon='',pmText='';switch(transaction.paymentMethod){case 'pix':pmIcon='<i class="fas fa-qrcode"></i>';pmText='Pix';break;case 'cash':pmIcon='<i class="fas fa-money-bill-wave"></i>';pmText='Dinheiro';break;case 'card':pmIcon='<i class="fas fa-credit-card"></i>';pmText='Conta/Cartão';break;default:pmIcon='<i class="fas fa-question-circle"></i>';pmText=transaction.paymentMethod||'N/D';}const schedInd=transaction.isScheduled?`<span class="scheduled-origin-indicator" title="Origem: Agendamento ID ${transaction.originatingBillId||'N/A'}"><i class="fas fa-history"></i></span>`:'';let actions='';if(transaction.isScheduled){const origBill=upcomingBills.find(b=>b&&String(b.id)===String(transaction.originatingBillId));const canDel=origBill&&isWithinGracePeriod(origBill.processedTimestamp);const isCard=origBill?.category==='Fatura do cartão';const delTitleBase=isCard?"Excluir Pgto Fatura":"Excluir Tx Agend.";const delAct=canDel?(isCard?"(reverte e remove 2 txs)":"(reverte pagto)"):"(histórico - não reversível)";const fullTitle=`${delTitleBase} ${delAct}`;actions=`<button class="action-btn delete-transaction" title="${fullTitle}" ${!canDel?'disabled':''}><i class="fas fa-trash"></i></button>`;}else{actions=`<button class="action-btn edit-transaction" title="Editar"><i class="fas fa-pencil"></i></button> <button class="action-btn delete-transaction" title="Excluir"><i class="fas fa-trash"></i></button>`;}div.innerHTML=`<div class="transaction-icon ${iconBg}"><i class="${catIcon}"></i></div><div class="transaction-details"><div class="transaction-title">${transaction.item} ${schedInd}</div><div class="transaction-meta"><span>${formatDisplayDate(transaction.date)}</span><span>${transaction.category}</span></div><div class="transaction-payment-method ${transaction.paymentMethod||'unknown'}">${pmIcon} ${pmText}</div></div><div class="transaction-amount ${amtCls}"> ${amtPfx} <span class="monetary-value">${formatCurrency(transaction.amount)}</span></div>${showActions?`<div class="transaction-actions">${actions}</div>`:''}`;return div; }
+    function createBillElement(bill, index, showDeleteButton) { /* ... Sem alteração essencial */ const div=document.createElement('div');div.className='bill-item';div.dataset.index=index;div.dataset.id=bill.id;const today=getLocalDateString();const isOverdue=!bill.paid&&bill.date<today;let catIcon=categoryIconMapping[bill.category]||'fas fa-file-invoice';if(bill.category==='Fatura do cartão')catIcon='fas fa-credit-card';if(bill.paid){div.classList.add('paid');}else if(bill.insufficientBalance){div.classList.add('insufficient-balance','pending');}else if(bill.pending){div.classList.add('pending');}else if(isOverdue){div.classList.add('overdue');}let statTxt='',statIcon='';let cancInf='';if(bill.paid&&isWithinGracePeriod(bill.processedTimestamp))cancInf=` (Canc.${new Date((bill.processedTimestamp||Date.now())+GRACE_PERIOD_MS).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})})`;if(bill.paid){statTxt=`Pago ${formatDisplayDate(bill.processedDate||'N/D')}${cancInf}`;statIcon='<i class="fas fa-check-circle text-success"></i>';}else if(bill.insufficientBalance){statTxt='Saldo insuficiente';statIcon='<i class="fas fa-exclamation-triangle text-warning"></i>';}else if(bill.pending){statTxt='Pendente';statIcon='<i class="fas fa-hourglass-half text-info"></i>';}else if(isOverdue){statTxt='Vencido';statIcon='<i class="fas fa-calendar-times text-danger"></i>';}else{statTxt=`Vence ${formatDisplayDate(bill.date)}`;statIcon='<i class="far fa-calendar-alt text-muted"></i>';}let pmIcon='',pmText='';let pmDisp=bill.paymentMethod;switch(pmDisp){case 'pix':pmIcon='<i class="fas fa-qrcode"></i>';pmText='Pix';break;case 'cash':pmIcon='<i class="fas fa-money-bill-wave"></i>';pmText='Dinheiro';break;case 'card':pmIcon='<i class="fas fa-credit-card"></i>';pmText='Conta/Cartão';break;default:pmIcon='<i class="fas fa-question-circle"></i>';pmText=bill.paymentMethod||'N/D';}const isCard=bill.category==='Fatura do cartão';const catDisp=scheduledPaymentVisibleCategories.find(c=>c.value===bill.category)?.text||bill.category||'Agendamento';const payDesc=`${pmIcon} Pagar c/ ${pmText}`;let acts='';if(!bill.paid){if(!bill.autoDebit&&!showDeleteButton)acts+=`<button class="action-btn bill-pay-btn" title="Confirmar Pagto Manual"><i class="fas fa-check"></i></button>`;if(showDeleteButton)acts+=`<button class="action-btn delete-scheduled-item-btn" title="Excluir Agendamento (não pago)"><i class="fas fa-trash"></i></button>`;}else{if(!showDeleteButton)acts+=`<span class="action-btn info-paid" title="${statTxt}"><i class="fas fa-info-circle"></i></span>`;else{let delTitle=`Remover Histórico`;const canCancel=isWithinGracePeriod(bill.processedTimestamp);if(canCancel){const txCount=isCard?2:1;delTitle+=` (${txCount} tx(s)${cancInf}. Cancelar na Transação)`;}else{delTitle+=` (Tx(s) não afetada(s))`;}acts+=`<button class="action-btn delete-scheduled-item-btn" title="${delTitle}"><i class="fas fa-trash"></i></button>`;}}div.innerHTML=`<div class="bill-category-icon"><i class="${catIcon}"></i></div> <div class="bill-details"> <div class="bill-title">${bill.name} <span class="bill-category-text">(${catDisp})</span></div> <div class="bill-meta"> <span>${statIcon} ${statTxt}</span> <span class="separator">|</span> <span>${payDesc}</span> ${bill.autoDebit&&!bill.paid?'<span class="separator">|</span><span title="Débito Automático"><i class="fas fa-robot"></i> Auto</span>':''} </div> </div> <div class="bill-amount amount-negative">- <span class="monetary-value">${formatCurrency(bill.amount)}</span></div> <div class="bill-actions"> ${acts} </div>`;return div;}
+    function createGoalElement(goal, index) { /* ... */ const div = document.createElement('div'); div.className = `goal-item ${goal.completed ? 'completed' : ''}`; div.dataset.index = index; div.dataset.id = goal.id; const goalTypeName = getGoalTypeName(goal.type); const goalTypeIcon = getGoalTypeIcon(goal.type); const progress = goal.target > 0 ? Math.min((goal.current / goal.target) * 100, 100) : 0; const today = new Date(); today.setHours(0, 0, 0, 0); const goalDate = parseDateInput(goal.date); goalDate.setHours(0, 0, 0, 0); const daysLeft = Math.ceil((goalDate - today) / (1000 * 60 * 60 * 24)); let timeLeftText = '', timeLeftClass = ''; if (goal.completed) { timeLeftText = `Concluída ${formatDisplayDate(goal.completedAt||goal.createdAt)}`; timeLeftClass = 'completed'; } else if (daysLeft < 0) { timeLeftText = `Vencida ${Math.abs(daysLeft)} dia(s)`; timeLeftClass = 'overdue'; } else if (daysLeft === 0) { timeLeftText = 'Vence hoje!'; timeLeftClass = 'due-today'; } else if (daysLeft < 30) { timeLeftText = `Faltam ${daysLeft} dia(s)`; timeLeftClass = 'due-soon'; } else { timeLeftText = `~ ${Math.ceil(daysLeft/30.44)} mese(s)`; timeLeftClass = 'due-later'; } const projection = !goal.completed ? calculateProjection(goal) : null; const canCompleteManually = !goal.completed && progress >= 100; const themeColorVar = `--theme-color-${goal.themeColor||'masculine-1'}`; const progressBarColor = `var(${themeColorVar}, #3a86ff)`; div.innerHTML = `<div class="goal-header"> <div class="goal-content"> ${goal.image ? `<img src="${goal.image}" class="goal-image" alt="${goal.name}">`:'<div class="goal-image-placeholder"><i class="fas fa-image"></i></div>'} <div class="goal-info"> <h3>${goal.name}</h3> <div class="goal-meta"> <span class="goal-type"><i class="fas ${goalTypeIcon}"></i> ${goalTypeName}</span> <span class="goal-time-left ${timeLeftClass}"><i class="far fa-clock"></i> ${timeLeftText}</span> </div> </div> </div> <div class="goal-actions"> <button class="action-btn edit-goal" title="Editar"><i class="fas fa-pencil"></i></button> <button class="action-btn delete-goal" title="Excluir"><i class="fas fa-trash"></i></button> </div> </div> <div class="goal-progress-details"> <div class="progress-container"> <div class="progress-bar" style="width:${progress}%; background:${progressBarColor};"></div> </div> <div class="goal-progress-info"> <span><span class="monetary-value">${formatCurrency(goal.current)}</span> / <span class="monetary-value">${formatCurrency(goal.target)}</span></span> <span>(${Math.round(progress)}%)</span> </div> </div> ${projection?`<div class="projection-info"><small><i class="fas fa-chart-line"></i> Proj: ${projection.monthsNeeded} meses (${projection.completionDateDisplay})</small></div>`:''} ${!goal.completed?`<div class="goal-contribution"><label for="contribution-${goal.id}" class="sr-only">Adicionar</label><input type="number" id="contribution-${goal.id}" placeholder="${formatPlaceholderCurrency()}" step="0.01" min="0.01" class="form-control contribution-input monetary-value-input"><button class="btn btn-sm btn-outline add-contribution-btn" title="Adicionar"><i class="fas fa-plus"></i> Add</button></div>`:''} ${canCompleteManually?`<div class="goal-complete-action"><button class="btn btn-sm btn-success complete-goal-btn"><i class="fas fa-check"></i> Marcar Concluída</button></div>`:''}`; return div;}
+    function getGoalTypeName(typeKey) { const t={travel:'Viagem',electronics:'Eletrônicos',education:'Educação',emergency:'Emergência',home:'Casa',car:'Carro',debt:'Quitar Dívida',investment:'Investimento',other:'Outro'}; return t[typeKey]||typeKey||'N/D'; }
+    function getGoalTypeIcon(typeKey) { const i={travel:'fa-plane-departure',electronics:'fa-laptop',education:'fa-graduation-cap',emergency:'fa-briefcase-medical',home:'fa-home',car:'fa-car',debt:'fa-credit-card',investment:'fa-piggy-bank',other:'fa-bullseye'}; return i[typeKey]||'fa-bullseye'; }
+
+    // --- Cálculos ---
+    function calculateCurrentBalances() { let p=initialBalances.pix, c=initialBalances.cash, d=initialBalances.card; transactions.forEach(t=>{if(!t||isNaN(t.amount))return; const f=t.type==='income'?1:-1; if(t.paymentMethod==='pix')p+=t.amount*f; else if(t.paymentMethod==='cash')c+=t.amount*f; else if(t.paymentMethod==='card')d+=t.amount*f;}); return{currentPix:p,currentCash:c,currentCard:d}; }
+    function calculateCurrentBalancesWithout(idx) { let p=initialBalances.pix, c=initialBalances.cash, d=initialBalances.card; transactions.forEach((t,i)=>{if(i===idx||!t||isNaN(t.amount))return; const f=t.type==='income'?1:-1; if(t.paymentMethod==='pix')p+=t.amount*f; else if(t.paymentMethod==='cash')c+=t.amount*f; else if(t.paymentMethod==='card')d+=t.amount*f;}); return{currentPix:p,currentCash:c,currentCard:d}; }
+    function calculateProjection(goal) { if(!goal||goal.completed||!goal.monthlyContribution||goal.monthlyContribution<=0||goal.target<=goal.current)return null; const r=goal.target-goal.current; const m=Math.ceil(r/goal.monthlyContribution); if(m<=0)return null; const cD=new Date();cD.setMonth(cD.getMonth()+m); const y=cD.getFullYear(); const mn=String(cD.getMonth()+1).padStart(2,'0'); const dy=String(cD.getDate()).padStart(2,'0'); return{monthsNeeded:m,completionDateDisplay:`${dy}/${mn}/${y}`}; }
+
+    // --- Ações ---
+    async function addTransactionFromModal(e) { /* ... */ e.preventDefault();if(!modalItemInput||!modalAmountInput||!modalDateInput||!modalCategoryInput||!modalPaymentMethodInput)return;const dt=modalDateInput.value;const it=modalItemInput.value.trim();const am=parseFloat(String(modalAmountInput.value).replace(',','.'))||0;const ty=modalTypeInput.value;const ca=modalCategoryInput.value;const pm=modalPaymentMethodInput.value;if(!it||!dt||isNaN(am)||am<=0||!ca||ca.startsWith('-- ')){showAlert('Preencha: Descrição, Valor, Data, Categoria.','warning');return;}if(ty==='expense'){const{currentPix:cp,currentCash:cc}=calculateCurrentBalances();let b=0,n='';if(pm==='pix'){b=cp;n='Pix';}else if(pm==='cash'){b=cc;n='Cédulas';}if((pm==='pix'||pm==='cash')&&am>b){showAlert(`Saldo ${n} insuficiente (${formatCurrency(b)}).`,'danger');return;}}const nT={id:Date.now()+Math.random(),date:dt,item:it,amount:am,type:ty,category:ca,paymentMethod:pm,isScheduled:false,originatingBillId:null};transactions.push(nT);saveDataToStorage();updateUIafterTransactionChange();closeModal(transactionModal);highlightNewTransaction(nT.id);showSuccessFeedback(saveTransactionBtn,"Salvo!");}
+    async function saveEditedTransaction() { /* ... */ if(currentEditIndex===null||!transactions[currentEditIndex]||!editForm){showAlert("Erro encontrar transação.",'danger');closeModal(editModal);return;}const oT=transactions[currentEditIndex];const nDt=editDateInput.value;const nIt=editItemInput.value.trim();const nAm=parseFloat(String(editAmountInput.value).replace(',','.'))||0;const nTy=editTypeInput.value;const nCa=editCategoryInput.value;const nPm=editPaymentMethodInput.value;if(!nIt||!nDt||isNaN(nAm)||nAm<=0||!nCa||nCa.startsWith('-- ')){showAlert('Preencha: Descrição, Valor, Data, Categoria.','warning');return;}let checkB=false;if(nTy==='expense'){if(oT.type!=='expense'||nAm>oT.amount||((nPm==='pix'||nPm==='cash')&&nPm!==oT.paymentMethod)){checkB=true;}}if(checkB){const tempB=calculateCurrentBalancesWithout(currentEditIndex);let bal=0,lbl='';if(nPm==='pix'){bal=tempB.currentPix;lbl='Pix';}else if(nPm==='cash'){bal=tempB.currentCash;lbl='Cédulas';}if((nPm==='pix'||nPm==='cash')&&nAm>bal){showAlert(`Saldo ${lbl} insuficiente (${formatCurrency(bal)}).`,'danger');return;}}transactions[currentEditIndex]={...oT,date:nDt,item:nIt,amount:nAm,type:nTy,category:nCa,paymentMethod:nPm};saveDataToStorage();updateUIafterTransactionChange();closeModal(editModal);showAlert('Transação atualizada!','info');}
+    async function confirmDeleteTransaction() { /* ... Lógica da v1.8.1 */ if(currentEditIndex===null||!transactions[currentEditIndex]){showAlert("Erro: Transação não encontrada.",'danger');currentEditIndex=null;return;}const txDel={...transactions[currentEditIndex]};const origIdx=currentEditIndex;currentEditIndex=null;let conf=false,ok=false;if(txDel.isScheduled&&txDel.originatingBillId){const bId=txDel.originatingBillId;const bIdx=upcomingBills.findIndex(b=>b&&String(b.id)===String(bId));if(bIdx===-1){conf=await showConfirmModal(`Excluir transação órfã <b>"${txDel.item}"</b> (${formatCurrency(txDel.amount)})?<br> Agend. original não encontrado.`);if(conf){transactions.splice(origIdx,1);ok=true;showAlert('Tx órfã excluída.','info');}}else{const bill=upcomingBills[bIdx];if(isWithinGracePeriod(bill.processedTimestamp)){const isCard=bill.category==='Fatura do cartão';if(isCard){conf=await showConfirmModal(`Excluir pgto fatura <b>"${bill.name}"</b>?<br><br>Isso reverte o status e remove <b>AMBAS</b> transações (Débito/Crédito).`);if(conf){const idcs=transactions.reduce((a,t,i)=>{if(t.isScheduled&&String(t.originatingBillId)===String(bId))a.push(i);return a;},[]);if(idcs.length>=1){console.log(`Reverting Card Bill ${bId}, del ${idcs.length} txs`);idcs.sort((a,b)=>b-a).forEach(i=>transactions.splice(i,1));upcomingBills[bIdx].paid=false;upcomingBills[bIdx].processedDate=null;upcomingBills[bIdx].processedTimestamp=null;upcomingBills[bIdx].pending=true;upcomingBills[bIdx].insufficientBalance=false;ok=true;showAlert('Pgto fatura revertido.','success');}else{console.error("Erro reverter Fatura: txs não encontradas.",bId);showAlert("Erro: txs não encontradas.",'danger');}}}else{conf=await showConfirmModal(`Excluir tx agend. <b>"${txDel.item}"</b>?<br><br>Isso também reverte status do agend.`);if(conf){transactions.splice(origIdx,1);upcomingBills[bIdx].paid=false;upcomingBills[bIdx].processedDate=null;upcomingBills[bIdx].processedTimestamp=null;upcomingBills[bIdx].pending=true;upcomingBills[bIdx].insufficientBalance=false;ok=true;showAlert('Tx e status agend. revertidos.','success');}}}else{showAlert(`Reversão não permitida. Pgto de "${bill.name}" processado > 12h. Use lixeira em 'Agendamentos' p/ remover histórico.`,'warning');}}}else{conf=await showConfirmModal(`Excluir tx manual <b>"${txDel.item}"</b> (${formatCurrency(txDel.amount)})?`);if(conf){transactions.splice(origIdx,1);ok=true;showAlert('Tx manual excluída.','info');}}if(ok){saveDataToStorage();updateUIafterTransactionChange();}}
+    async function saveScheduledPayment(e) { /* ... Lógica e Validação da v1.8.1 */ e.preventDefault(); console.log("Salvando agendamento..."); const nameInput=scheduledItemInput instanceof HTMLInputElement?scheduledItemInput.value.trim():'';const amountInput=scheduledAmountInput instanceof HTMLInputElement?scheduledAmountInput.value:'';const dateInput=scheduledDateInput instanceof HTMLInputElement?scheduledDateInput.value:'';const categorySelect=scheduledCategoryInput instanceof HTMLSelectElement?scheduledCategoryInput:null;const paymentMethodSelect=scheduledPaymentMethodInput instanceof HTMLSelectElement?scheduledPaymentMethodInput:null;const autoDebitCheck=scheduledAutoDebitInput instanceof HTMLInputElement?scheduledAutoDebitInput.checked:false; if(!categorySelect||!paymentMethodSelect){showAlert("Erro interno: Campos Select não encontrados.",'danger');return;}const n=nameInput||'Agendamento';const a=parseFloat(String(amountInput).replace(',','.'))||0;const d=dateInput;const c=categorySelect.value;const p=paymentMethodSelect.value;const b=autoDebitCheck; console.log('Valores lidos:',{n,a,d,c,p,b});let isValid=true;let errors=[];if(!n)errors.push("Descrição");if(!d)errors.push("Data");if(isNaN(a)||a<=0)errors.push("Valor válido");if(!c||c===''||!scheduledPaymentVisibleCategories.find(cat=>cat.value===c&&cat.value!=='')) {isValid=false;errors.push("Categoria válida");console.error('Validação Categoria Falhou:',c);} if(!p)errors.push("Método Pgto");if(c==='Fatura do cartão'&&p==='card'){showAlert('Erro: Fatura não pode ser paga c/ Cartão.','danger');return;}if(!isValid){showAlert(`Preencha: ${errors.join(', ')}.`,'warning');return;}await showScheduledPaymentWarningModal();const newBill={id:Date.now()+Math.random(),name:n,amount:a,date:d,category:c,paymentMethod:p,autoDebit:b,paid:false,pending:false,insufficientBalance:false,processingAttempted:false,processedTimestamp:null,processedDate:null};console.log('Salvando Bill:',newBill);upcomingBills.push(newBill);saveDataToStorage();renderUpcomingBills();renderAllScheduledPayments();checkScheduledPayments();closeModal(scheduledPaymentModal);showAlert('Agendado sucesso!','success');showSuccessFeedback(saveScheduledPaymentBtn,"Salvo!"); }
+    async function payScheduledBill(index) { /* ... */ if(index===null||!upcomingBills[index]){showAlert("Erro: Agend. não encontrado.",'danger');return;}const bill=upcomingBills[index];if(bill.paid){showAlert(`"${bill.name}" já pago.`,'info');return;}const result=processScheduledPaymentLogic(index);if(result.success){saveDataToStorage();updateUIafterTransactionChange();showAlert(`Pagto "${bill.name}" registrado.`,'success');}else{saveDataToStorage();renderUpcomingBills();renderAllScheduledPayments();showAlert(`Falha: ${result.message}`,'warning');}}
+    async function deleteScheduledItem(index) { /* ... */ if(index===null||!upcomingBills[index]){showAlert("Erro: Agend. não encontrado.",'danger');return;}const bill=upcomingBills[index];const isCard=bill.category==='Fatura do cartão';let msg=`Excluir registro agend. "${bill.name}" (${bill.category})?`;let txAssoc=false,txCount=0,canCancel=false;if(bill.paid){const assoc=transactions.filter(t=>t.isScheduled&&String(t.originatingBillId)===String(bill.id));txCount=assoc.length;if(txCount>0){txAssoc=true;canCancel=isWithinGracePeriod(bill.processedTimestamp);const txText=isCard?`as <b>${txCount}</b> txs`:`a tx`;if(canCancel)msg+=`<br><br><b>Pago Recente.</b> Excluir isto remove atalho p/ cancelar ${txText}. Use Lixeira na Transação p/ cancelar.`;else msg+=`<br><br>Pago há tempo. ${txCount>1?'As txs':'A tx'} (${txCount}) <b>não</b> afetada(s).`;}else msg+=`<br><br>Pago, mas tx(s) não encontrada(s).`;}else msg+=`<br><br>Não pago. Nenhuma tx afetada.`;const conf=await showConfirmModal(msg);if(!conf)return;upcomingBills.splice(index,1);saveDataToStorage();renderUpcomingBills();renderAllScheduledPayments();if(txAssoc&&canCancel)showAlert('Registro excluído. Tx(s) cancelável(is) em Transações.','info');else if(txAssoc)showAlert('Histórico excluído. Tx(s) não afetada(s).','info');else showAlert('Registro agend. excluído.','info');}
+    async function saveGoal(e) { /* ... */ e.preventDefault(); if (!goalNameInput||!goalTargetInput||!goalDateInput||!goalTypeInput) return; const nm=goalNameInput.value.trim(); const tg=parseFloat(String(goalTargetInput.value).replace(',','.'))||0; const dt=goalDateInput.value; const iF=goalImageInput instanceof HTMLInputElement ? goalImageInput.files?.[0]:null; const sC=goalModal?.querySelector('.theme-color-option.selected')?.dataset.color||selectedThemeColor||'masculine-1'; const mCVal=monthlyContributionInput instanceof HTMLInputElement?String(monthlyContributionInput.value||'0').replace(',','.'):'0'; const mC=parseFloat(mCVal)||0; const gT=goalTypeInput.value; if(!nm||isNaN(tg)||tg<=0||!dt||!gT){showAlert('Preencha: Nome, Valor, Data, Tipo Meta.','warning'); return;} const isEditing=currentEditIndex!==null&&goals[currentEditIndex]; const goalData={id:isEditing?goals[currentEditIndex].id:Date.now()+Math.random(),name:nm,target:tg,date:dt,type:gT,monthlyContribution:mC,themeColor:sC,current:isEditing?goals[currentEditIndex].current:0,contributions:isEditing?goals[currentEditIndex].contributions||[]:[],completed:isEditing?goals[currentEditIndex].completed:false,completedAt:isEditing?goals[currentEditIndex].completedAt:null,createdAt:isEditing?goals[currentEditIndex].createdAt:new Date().toISOString(),image:isEditing?goals[currentEditIndex].image:null}; const processSave=(imgData=null)=>{if(imgData)goalData.image=imgData; else if(isEditing&&goalImagePreview?.style.display==='none'&&!iF)goalData.image=null; if(isEditing)goals[currentEditIndex]=goalData; else goals.push(goalData);saveDataToStorage();renderGoals();updateGoalsSummary();closeModal(goalModal);showAlert(`Meta ${isEditing?'atualizada':'salva'}!`,'success');currentEditIndex=null;showSuccessFeedback(saveGoalBtn,isEditing?'Atualizada!':'Salva!');}; const hasNewImg=iF instanceof File;if(hasNewImg){const reader=new FileReader();reader.onload=ev=>processSave(ev.target?.result?.toString());reader.onerror=e=>{console.error("Erro img:",e);showAlert("Erro upload imagem.",'danger');processSave(goalData.image);};reader.readAsDataURL(iF);}else{processSave(goalData.image);}}
+    async function addContribution(goalIndex, amountString) { /* ... */ if(goalIndex===null||!goals[goalIndex]){showAlert("Meta não encontrada.",'warning');return;}const goal=goals[goalIndex];const amount=parseFloat(String(amountString||'0').replace(',','.'))||0;if(isNaN(amount)||amount<=0){showAlert('Valor contribuição inválido.','warning');return;}if(goal.completed){showAlert(`Meta "${goal.name}" já concluída.`,'info');return;}goal.current+=amount;goal.contributions=goal.contributions||[];goal.contributions.push({date:getLocalDateString(),amount:amount});let completedNow=false;if(goal.current>=goal.target&&!goal.completed){goal.completed=true;goal.completedAt=new Date().toISOString();completedNow=true;}saveDataToStorage();renderGoals();updateGoalsSummary();if(completedNow)showAlert(`Meta "${goal.name}" alcançada! Parabéns!`,'success');const itemEl=goalsListContainer?.querySelector(`.goal-item[data-index="${goalIndex}"]`);const inputEl=itemEl?.querySelector('.contribution-input');if(inputEl instanceof HTMLInputElement){inputEl.value='';inputEl.placeholder=formatPlaceholderCurrency();}}
+    async function completeGoal(goalIndex) { /* ... */ if(goalIndex===null||!goals[goalIndex])return;const goal=goals[goalIndex];if(goal.completed){showAlert("Meta já concluída.",'info');return;}if(goal.current<goal.target){showAlert("Progresso insuficiente p/ concluir.",'warning');return;}goal.completed=true;goal.completedAt=new Date().toISOString();saveDataToStorage();renderGoals();updateGoalsSummary();showAlert(`Meta "${goal.name}" marcada como concluída!`,'success');}
+    async function deleteGoal(goalIndex) { /* ... */ if(goalIndex===null||!goals[goalIndex]){showAlert("Meta não encontrada.",'warning');return;}const goal=goals[goalIndex];const conf=await showConfirmModal(`Excluir meta "${goal.name}"?<br>Todo progresso será perdido.`);if(conf){goals.splice(goalIndex,1);saveDataToStorage();renderGoals();updateGoalsSummary();showAlert('Meta excluída.','info');}}
+    function saveSettings() { /* ... */ if(!initialBalancePixInput||!initialBalanceCashInput||!initialBalanceCardInput)return;const nP=parseFloat(String(initialBalancePixInput.value||'0').replace(',','.'))||0;const nC=parseFloat(String(initialBalanceCashInput.value||'0').replace(',','.'))||0;const nCd=parseFloat(String(initialBalanceCardInput.value||'0').replace(',','.'))||0;let ch=false;if(initialBalances.pix!==nP||initialBalances.cash!==nC||initialBalances.card!==nCd){initialBalances={pix:nP,cash:nC,card:nCd};ch=true;}if(ch){saveDataToStorage();updateBalanceDisplay();updateBalanceDisplays();updateCharts();showSuccessFeedback(saveSettingsBtn,'Saldos Salvos!');}else{showSuccessFeedback(saveSettingsBtn,'Sem Alterações');}}
+    function saveUserSettings() { /* ... */ if(!userNameInput||!userEmailInput||!currencyInput||!settingsSection)return;const nUn=userNameInput.value.trim();const nEm=userEmailInput.value.trim();const nCu=currencyInput.value;const nThC=settingsSection.querySelector('.theme-color-option.selected')?.dataset.color||selectedThemeColor;let ch=false;if(userName!==nUn){userName=nUn;ch=true;}if(userEmail!==nEm){userEmail=nEm;ch=true;}if(currency!==nCu){currency=nCu;ch=true;}if(selectedThemeColor!==nThC){selectedThemeColor=nThC;localStorage.setItem('themeColor',selectedThemeColor);applyThemeColor();ch=true;}if(ch){saveDataToStorage();if(safeQuerySelector('.user-name'))safeQuerySelector('.user-name').textContent=userName;if(safeQuerySelector('.user-email'))safeQuerySelector('.user-email').textContent=userEmail;if(currency!==nCu||selectedThemeColor!==nThC)updateUIafterSettingsChange();else{applyValueVisibilityIconAndClass();updatePlaceholders();}showSuccessFeedback(saveUserSettingsBtn,'Salvo!');}else{showSuccessFeedback(saveUserSettingsBtn,'Sem Alterações');}}
+    function exportData() { /* ... */ const d={version:1.8,transactions,goals,upcomingBills,initialBalances,userName,userEmail,currency,selectedThemeColor,currentTheme,valuesHidden,hideScheduledPaymentWarning};const s=JSON.stringify(d,null,2);const u='data:application/json;charset=utf-8,'+encodeURIComponent(s);const f=`gestor-backup-${new Date().toISOString().split('T')[0]}.json`;const a=document.createElement('a');a.href=u;a.download=f;a.click();a.remove();showAlert('Backup exportado!','success');}
+    function handleFileImport(event) { /* ... */ const file=event.target.files?.[0];if(!file||!importDataInput)return;const reader=new FileReader();reader.onload=async(e)=>{try{const data=JSON.parse(e.target?.result?.toString()||'{}');const conf=await showConfirmModal('<b>IMPORTANTE:</b> Importar substituirá <b>TODOS</b> dados atuais. Continuar?');if(conf)importData(data);else showAlert('Importação cancelada.','info');}catch(err){console.error("Erro import:",err);showAlert(`Erro ler backup: ${err.message}.`,'danger');}finally{if(importDataInput instanceof HTMLInputElement)importDataInput.value='';}};reader.readAsText(file);}
+    function importData(data) { /* ... */ try {if(!data||typeof data!=='object')throw new Error('Formato inválido.');transactions=Array.isArray(data.transactions)?data.transactions.map(t=>({...t,id:t.id||Date.now()+Math.random(),amount:parseFloat(String(t.amount).replace(',','.'))||0,isScheduled:t.isScheduled===true,originatingBillId:t.originatingBillId||null})):[];goals=Array.isArray(data.goals)?data.goals.map(g=>{const pg={...g,id:g.id||Date.now()+Math.random(),target:parseFloat(String(g.target).replace(',','.'))||0,current:parseFloat(String(g.current).replace(',','.'))||0,monthlyContribution:parseFloat(String(g.monthlyContribution).replace(',','.'))||0,contributions:Array.isArray(g.contributions)?g.contributions.map(c=>({...c,amount:parseFloat(String(c.amount).replace(',','.'))||0})):[]};if(pg.goalType&&!pg.type){pg.type=pg.goalType;delete pg.goalType;}return pg;}):[];upcomingBills=Array.isArray(data.upcomingBills)?data.upcomingBills.map(b=>{const bill={...b,id:b.id||Date.now()+Math.random(),amount:parseFloat(String(b.amount).replace(',','.'))||0,paid:b.paid===true,pending:b.pending===true,insufficientBalance:b.insufficientBalance===true,autoDebit:b.autoDebit===true,processingAttempted:b.processingAttempted===true,category:(()=>{const valid=scheduledPaymentVisibleCategories.map(c=>c.value).filter(Boolean);if(b.category&&valid.includes(b.category))return b.category;if(b.category?.toLowerCase().includes('aluguel')||b.category?.toLowerCase().includes('financiamento'))return'Aluguel';if(b.category?.toLowerCase().includes('fatura')&&b.category?.toLowerCase().includes('cart'))return'Fatura do cartão';return'Faturas';})(),paymentMethod:b.paymentMethod||'pix'};if(bill.category==='Fatura do cartão'&&bill.paymentMethod==='card'){bill.paymentMethod='pix';}if(bill.processedTimestamp)bill.processedTimestamp=parseInt(bill.processedTimestamp,10)||null;bill.processedDate=bill.processedDate||null;return bill;}):[];initialBalances=(data.initialBalances&&typeof data.initialBalances==='object')?{pix:parseFloat(data.initialBalances.pix||0),cash:parseFloat(data.initialBalances.cash||0),card:parseFloat(data.initialBalances.card||0)}:{pix:0,cash:0,card:0};userName=data.userName||'Usuário';userEmail=data.userEmail||'email@exemplo.com';currency=data.currency||'BRL';selectedThemeColor=data.selectedThemeColor||'masculine-1';currentTheme=data.currentTheme||data.theme||'light';valuesHidden=data.valuesHidden===true;hideScheduledPaymentWarning=data.hideScheduledPaymentWarning===true;saveDataToStorage();applyTheme();applyThemeColor();applyValueVisibilityIconAndClass();updateUIafterImport();showAlert('Dados importados!','success');}catch(err){console.error('Erro importação:',err);showAlert(`Falha importação: ${err.message}.`,'danger');}}
+
+    // --- Lógica de Negócios ---
+    function checkScheduledPayments() { /* ... Sem alterações da v1.8.1 */ const today=getLocalDateString();let needsUpdate=false,paid=0,failed=0,manual=false,shouldSave=false;upcomingBills.forEach((bill,idx)=>{if(!bill||bill.paid)return;const dueDate=parseDateInput(bill.date);dueDate.setHours(23,59,59,999);const now=new Date();const isDue=dueDate<=now;if(isDue&&bill.autoDebit&&!bill.processingAttempted){console.log(`Tentando auto ${bill.name}`);upcomingBills[idx].processingAttempted=true;shouldSave=true;const result=processScheduledPaymentLogic(idx);if(result.success){paid++;needsUpdate=true;console.log(`-> OK`);}else{failed++;upcomingBills[idx].pending=true;upcomingBills[idx].insufficientBalance=result.message.toLowerCase().includes('saldo');needsUpdate=true;console.log(`-> Falha: ${result.message}`);}}else if(isDue&&!bill.autoDebit&&!bill.pending&&!bill.insufficientBalance){console.log(`Manual pendente ${bill.name}`);upcomingBills[idx].pending=true;manual=true;shouldSave=true;needsUpdate=true;}});if(shouldSave)saveDataToStorage();if(needsUpdate){if(paid>0)updateUIafterTransactionChange();else{renderUpcomingBills();renderAllScheduledPayments();}let msgs=[];if(failed>0)msgs.push(`${failed} pag. auto falharam.`);if(manual)msgs.push(`Verifique ${upcomingBills.filter(b=>b.pending&&!b.paid&&!b.autoDebit).length} pag. manual(is).`);if(msgs.length>0){if(failed>0)showAlert(msgs.join(' '),'warning');else console.warn(msgs.join(' '));}}}
+    function processScheduledPaymentLogic(index) { /* ... Sem alterações da v1.8.1 */ if(index===null||!upcomingBills[index])return{success:false,message:'Agend. inválido.'};const bill=upcomingBills[index];if(bill.paid)return{success:false,message:'Agend. já pago.'};const pDate=getLocalDateString();const bId=bill.id;const bCat=bill.category;const pMeth=bill.paymentMethod;const bAmt=bill.amount;const isCardBill=bCat==='Fatura do cartão';console.log(`Proc Agend ${bId}:"${bill.name}",Cat:${bCat},Mtd:${pMeth},Val:${formatCurrency(bAmt)}`);if(isCardBill&&pMeth==='card'){console.error(`ERRO: Pg Fatura ${bId} c/ Cartão.`);upcomingBills[index].pending=true;upcomingBills[index].insufficientBalance=false;upcomingBills[index].paid=false;return{success:false,message:'Erro: Pg Fatura c/ Mtd inválido.'};}let hasBal=true;let balChk=0;let methLbl='';const{currentPix:cp,currentCash:cc}=calculateCurrentBalances();if(pMeth==='pix'){balChk=cp;methLbl='Pix';hasBal=cp>=bAmt;}else if(pMeth==='cash'){balChk=cc;methLbl='Dinheiro';hasBal=cc>=bAmt;}if(!hasBal){console.warn(`Saldo insuf ${bId}:${methLbl}(${formatCurrency(balChk)})<${formatCurrency(bAmt)}`);upcomingBills[index].pending=true;upcomingBills[index].insufficientBalance=true;upcomingBills[index].paid=false;return{success:false,message:`Saldo ${methLbl} insuficiente (${formatCurrency(balChk)}).`};}try{if(isCardBill){console.log(`-> Fatura Cartão. 2 txs...`);const dT={id:Date.now()+Math.random(),date:pDate,item:`Pgto Fatura:${bill.name}`,amount:bAmt,type:'expense',category:'Faturas',paymentMethod:pMeth,isScheduled:true,originatingBillId:bId};transactions.push(dT);console.log(`  - Débito ${pMeth}: ${formatCurrency(dT.amount)}`);const cT={id:dT.id+1,date:pDate,item:`Crédito Fatura Paga:${bill.name}`,amount:bAmt,type:'income',category:'Fatura do cartão',paymentMethod:'card',isScheduled:true,originatingBillId:bId};transactions.push(cT);console.log(`  - Crédito Cartão: ${formatCurrency(cT.amount)}`);}else{console.log(`-> Pag Normal (${bCat}). 1 tx...`);const nT={id:Date.now()+Math.random(),date:pDate,item:`${bill.name} (Agend.)`,amount:bAmt,type:'expense',category:bCat,paymentMethod:pMeth,isScheduled:true,originatingBillId:bId};transactions.push(nT);console.log(`  - Desp ${pMeth} (${bCat}): ${formatCurrency(nT.amount)}`);}upcomingBills[index].paid=true;upcomingBills[index].processedDate=pDate;upcomingBills[index].processedTimestamp=Date.now();upcomingBills[index].pending=false;upcomingBills[index].insufficientBalance=false;upcomingBills[index].processingAttempted=true;console.log(`-> Agend ${bId} OK.`);return{success:true};}catch(err){console.error(`ERRO CRÍTICO tx agend ${bId}:`,err,bill);upcomingBills[index].pending=true;upcomingBills[index].insufficientBalance=false;upcomingBills[index].paid=false;return{success:false,message:`Erro interno registro: ${err.message}`};}}
+
+    // --- Modals ---
+    function openModal(el) { /*...*/ if (el) el.classList.add('active'); }
+    // <<< REVISADO: closeModal para Agendamento >>>
+    function closeModal(el) {
+        if (!el) return;
+        el.classList.remove('active'); const id = el.id;
+        if (id === 'transactionModal' || id === 'editModal' || id === 'goalModal') { currentEditIndex = null; }
+        if (id === 'goalModal') { /* Reset Goal Modal */ if (goalImagePreview) { goalImagePreview.style.display='none'; goalImagePreview.removeAttribute('src'); } const removeBtn = goalModal?.querySelector('.remove-image-btn'); if (removeBtn) removeBtn.style.display='none'; if (goalImageInput instanceof HTMLInputElement) goalImageInput.value=''; goalForm?.reset(); }
+        else if (id === 'transactionModal' && transactionModalForm) { /* Reset Trans Modal */ const d=modalDateInput instanceof HTMLInputElement?modalDateInput.value:getLocalDateString(); transactionModalForm.reset(); if(modalDateInput instanceof HTMLInputElement) modalDateInput.value=d; if(modalCategoryInput && modalTypeInput) updateCategoryDropdowns(modalCategoryInput, modalTypeInput.value || 'expense'); }
+        else if (id === 'scheduledPaymentModal' && scheduledPaymentForm) { // Reset Sched Modal
+            console.log("Fechando e Resetando Modal Agendamento"); // DEBUG
+            const d = scheduledDateInput instanceof HTMLInputElement ? scheduledDateInput.value : getLocalDateString();
+            scheduledPaymentForm.reset();
+            if(scheduledDateInput instanceof HTMLInputElement) scheduledDateInput.value=d;
+            // Repopula categoria p/ garantir placeholder selecionado
+            const categorySelect = scheduledCategoryInput instanceof HTMLSelectElement ? scheduledCategoryInput : null;
+            if(categorySelect) updateCategoryDropdowns(categorySelect, 'scheduled'); else console.error("scheduledCategoryInput não encontrado em closeModal");
+            // Reseta método de pagamento e aplica filtro inicial
+             const methodSelect = scheduledPaymentMethodInput instanceof HTMLSelectElement ? scheduledPaymentMethodInput : null;
+            if(methodSelect) {
+                methodSelect.value='pix'; // Define pix como default ao fechar também
+                 handleScheduledCategoryChange(); // Aplica o filtro para o estado resetado
+             } else console.error("scheduledPaymentMethodInput não encontrado em closeModal");
+            if (scheduledAutoDebitInput instanceof HTMLInputElement) scheduledAutoDebitInput.checked=false;
+        }
+        else if (id === 'scheduledWarningModal' && el.querySelector('#dontShowWarningAgain')) { /* Reset Warning Modal Checkbox */ const chk = el.querySelector('#dontShowWarningAgain'); if (chk instanceof HTMLInputElement) chk.checked=false; }
+        updatePlaceholders();
     }
-    
-    // Abrir modal de pagamento agendado
+    function openAddTransactionModal() { /*...*/ currentEditIndex=null;if(!transactionModal||!transactionModalForm)return;transactionModalForm.reset();if(modalDateInput instanceof HTMLInputElement)modalDateInput.value=getLocalDateString();if(modalTypeInput instanceof HTMLSelectElement)modalTypeInput.value='expense';if(modalCategoryInput&&modalTypeInput)updateCategoryDropdowns(modalCategoryInput,'expense');if(modalPaymentMethodInput instanceof HTMLSelectElement)modalPaymentMethodInput.value='pix';const t=transactionModal.querySelector('.modal-title');if(t)t.textContent='Adicionar Transação';updatePlaceholders();openModal(transactionModal); }
+    function openEditModal(index) { /*...*/ if(index===null||!transactions[index]||!editModal||!editForm){showAlert("Erro abrir edição.",'danger');return;}const t=transactions[index];if(t.isScheduled){showAlert("Transações agendadas não editáveis.",'warning');return;}currentEditIndex=index;editForm.reset();if(editDateInput instanceof HTMLInputElement)editDateInput.value=t.date;if(editItemInput instanceof HTMLInputElement)editItemInput.value=t.item;if(editAmountInput instanceof HTMLInputElement)editAmountInput.value=t.amount.toFixed(2);if(editTypeInput instanceof HTMLSelectElement)editTypeInput.value=t.type;if(editCategoryInput&&editTypeInput)updateCategoryDropdowns(editCategoryInput,t.type);if(editCategoryInput instanceof HTMLSelectElement)editCategoryInput.value=t.category;if(editPaymentMethodInput instanceof HTMLSelectElement)editPaymentMethodInput.value=t.paymentMethod;const tit=editModal.querySelector('.modal-title');if(tit)tit.textContent='Editar Transação Manual';updatePlaceholders();openModal(editModal);}
+    function openAddGoalModal() { /*...*/ currentEditIndex=null;if(!goalModal||!goalForm)return;goalForm.reset();if(goalDateInput instanceof HTMLInputElement)goalDateInput.value=getLocalDateString();if(goalImagePreview){goalImagePreview.style.display='none';goalImagePreview.removeAttribute('src');}const remBtn = goalModal?.querySelector('.remove-image-btn');if(remBtn)remBtn.style.display='none';if(goalImageInput instanceof HTMLInputElement)goalImageInput.value='';const currTheme=localStorage.getItem('themeColor')||'masculine-1';goalModal.querySelectorAll('.theme-color-option').forEach(o=>o.classList.toggle('selected',o.dataset.color===currTheme));const t=goalModal.querySelector('.modal-title');if(t)t.textContent='Nova Meta';updatePlaceholders();openModal(goalModal); }
+    function openEditGoalModal(index) { /*...*/ if(index===null||!goals[index]||!goalModal||!goalForm){showAlert("Erro abrir edição meta.",'danger');return;}const g=goals[index];currentEditIndex=index;goalForm.reset();if(goalNameInput instanceof HTMLInputElement)goalNameInput.value=g.name;if(goalTargetInput instanceof HTMLInputElement)goalTargetInput.value=g.target.toFixed(2);if(goalDateInput instanceof HTMLInputElement)goalDateInput.value=g.date;if(goalTypeInput instanceof HTMLSelectElement)goalTypeInput.value=g.type||'other';if(monthlyContributionInput instanceof HTMLInputElement)monthlyContributionInput.value=g.monthlyContribution?g.monthlyContribution.toFixed(2):'';const remBtn=goalModal?.querySelector('.remove-image-btn');if(g.image&&goalImagePreview){goalImagePreview.src=g.image;goalImagePreview.style.display='block';if(remBtn)remBtn.style.display='inline-block';}else{if(goalImagePreview)goalImagePreview.style.display='none';goalImagePreview.removeAttribute('src');if(remBtn)remBtn.style.display='none';}if(goalImageInput instanceof HTMLInputElement)goalImageInput.value='';goalModal.querySelectorAll('.theme-color-option').forEach(o=>o.classList.toggle('selected',o.dataset.color===g.themeColor));const t=goalModal.querySelector('.modal-title');if(t)t.textContent='Editar Meta';updatePlaceholders();openModal(goalModal);}
+    function removeImageHandler(event) { /*...*/ event.preventDefault();event.stopPropagation();if(goalImageInput instanceof HTMLInputElement)goalImageInput.value='';if(goalImagePreview){goalImagePreview.style.display='none';goalImagePreview.removeAttribute('src');}if(removeGoalImageBtn)removeGoalImageBtn.style.display='none';}
+    // <<< REVISADO E LOGANDO openScheduledPaymentModal >>>
     function openScheduledPaymentModal() {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('scheduledDate').value = today;
-        scheduledPaymentForm.reset();
-        scheduledPaymentModal.classList.add('active');
+        console.log("Abrindo modal de agendamento...");
+        if (!scheduledPaymentModal || !scheduledPaymentForm) { showAlert("Erro ao abrir form agendamento.", 'danger'); return; }
+        currentEditIndex = null; scheduledPaymentForm.reset();
+        if(scheduledDateInput instanceof HTMLInputElement) scheduledDateInput.value = getLocalDateString();
+        const categorySelect = scheduledCategoryInput instanceof HTMLSelectElement ? scheduledCategoryInput : null;
+        if (categorySelect) {
+            updateCategoryDropdowns(categorySelect, 'scheduled'); // <<< Povoa categorias específicas
+        } else { console.error("ERRO FATAL: Select #scheduledCategory não encontrado!"); showAlert("Erro: Campo Categoria não encontrado.", 'danger'); return; } // Impede abrir se campo não existe
+        const methodSelect = scheduledPaymentMethodInput instanceof HTMLSelectElement ? scheduledPaymentMethodInput : null;
+        if(methodSelect){ Array.from(methodSelect.options).forEach(opt => {if(['pix','cash','card'].includes(opt.value)){opt.disabled=false;opt.style.display='';opt.style.color='';opt.style.backgroundColor='';opt.textContent=opt.value[0].toUpperCase()+opt.value.slice(1);}else{opt.disabled=true;opt.style.display='none';}});methodSelect.value = 'pix'; }
+        if(scheduledAutoDebitInput instanceof HTMLInputElement) scheduledAutoDebitInput.checked=false;
+        handleScheduledCategoryChange(); // <<< Aplica filtro inicial baseado no placeholder
+        updatePlaceholders();
+        openModal(scheduledPaymentModal);
+        console.log("Modal de agendamento pronto.");
     }
-    
-    // Salvar pagamento agendado
-    async function saveScheduledPayment(e) {
-        e.preventDefault();
-        
-        const name = document.getElementById('scheduledItem').value.trim() || 'Pagamento de Fatura';
-        const amount = parseFloat(document.getElementById('scheduledAmount').value);
-        const dateInput = document.getElementById('scheduledDate');
-        
-        if (!dateInput.value) {
-            showAlert('Por favor, selecione uma data!');
-            return;
-        }
+    // <<< REVISADO E LOGANDO handleScheduledCategoryChange >>>
+    function handleScheduledCategoryChange() {
+         const categorySelect = scheduledCategoryInput instanceof HTMLSelectElement ? scheduledCategoryInput : null;
+         const methodSelect = scheduledPaymentMethodInput instanceof HTMLSelectElement ? scheduledPaymentMethodInput : null;
+         if (!categorySelect || !methodSelect) { console.warn("ChangeHandle: Selects não encontrados"); return; }
+         const selectedCat = categorySelect.value; const methodOpts = methodSelect.options; const currentMeth = methodSelect.value;
+         console.log(`---> handleScheduledCategoryChange: Categoria Selecionada: "${selectedCat}"`); // DEBUG
+        if (selectedCat === 'Fatura do cartão') {
+             console.log("   Filtrando Métodos: Apenas Pix/Dinheiro"); // DEBUG
+             let firstEnabled = ''; Array.from(methodOpts).forEach(o => { const v=o.value; if(v==='pix'||v==='cash'){o.disabled=false;o.style.cssText='';o.textContent=v[0].toUpperCase()+v.slice(1);if(!firstEnabled)firstEnabled=v;} else if(v==='card'){o.disabled=true;o.style.display='';o.style.color='var(--text-muted)';o.style.backgroundColor='var(--bg-secondary)';o.textContent='Cartão (Inválido)';o.style.cursor='not-allowed';} else if(v!==''){o.disabled=true;o.style.display='none';}});
+             if (currentMeth==='card' && firstEnabled) methodSelect.value=firstEnabled;
+         } else {
+             console.log("   Filtrando Métodos: Todos Habilitados (Pix/Dinheiro/Cartão)"); // DEBUG
+             Array.from(methodOpts).forEach(o => {const v=o.value; if(v==='pix'||v==='cash'||v==='card'){o.disabled=false;o.style.cssText='';o.textContent=v[0].toUpperCase()+v.slice(1);} else if(v!==''){o.disabled=true;o.style.display='none';}});
+         }
+     }
 
-        // Correção para o problema da data
-        const dateParts = dateInput.value.split('-');
-        const formattedDate = `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`;
-        
-        const paymentMethod = document.getElementById('scheduledPaymentMethod').value;
-        const autoDebit = document.getElementById('scheduledAutoDebit').checked;
-        
-        if (isNaN(amount)) {
-            showAlert('Por favor, insira um valor válido!');
-            return;
-        }
 
-        const bill = {
-            id: Date.now(),
-            name,
-            amount,
-            date: formattedDate,
-            paymentMethod,
-            autoDebit,
-            paid: false,
-            pending: false,
-            insufficientBalance: false,
-            category: 'Faturas (cartão, celular, assinaturas)'
-        };
-        
-        upcomingBills.push(bill);
-        saveUpcomingBills();
-        renderUpcomingBills();
-        checkScheduledPayments();
-        
-        closeModal(scheduledPaymentModal);
-    }
+    // --- UI Navigation & Theme ---
+    function toggleSidebar() { /* ... */ if(sidebar)sidebar.classList.toggle('open'); }
+    function showSection(sectionId) { /* ... */ contentSections.forEach(s=>s.classList.remove('active'));menuItems.forEach(i=>i.classList.remove('active'));const secEl=safeGetElementById(`${sectionId}-section`);const mItem=safeQuerySelector(`.menu-item[data-section="${sectionId}"]`);if(secEl){secEl.classList.add('active');if(mItem)mItem.classList.add('active');updatePageTitle(mItem?.querySelector('span')?.textContent||sectionId);if(sectionId==='transactions'){if(safeGetElementById('filterCategory2'))updateCategoryDropdowns(safeGetElementById('filterCategory2'),'filter');clearFilters();}else if(sectionId==='scheduled'){renderAllScheduledPayments();}else if(sectionId==='goals'){renderGoals();}else if(sectionId==='settings'){loadSettingsValues();}refreshAllUIComponents();}else{safeGetElementById('dashboard-section')?.classList.add('active');safeQuerySelector('.menu-item[data-section="dashboard"]')?.classList.add('active');updatePageTitle('Dashboard');refreshAllUIComponents();}if(window.innerWidth<768&&sidebar?.classList.contains('open')){toggleSidebar();}}
+    function updatePageTitle(title) { /* ... */ const dt='Gestor Financeiro';let d=title?title[0].toUpperCase()+title.slice(1):'Dashboard';if(title?.toLowerCase()==='dashboard')d='Dashboard';if(pageTitleElement)pageTitleElement.textContent=d;document.title=`${dt} | ${d}`;}
+    function applyTheme() { /* ... */ if(!body)return;const th=localStorage.getItem('theme')||'light';body.setAttribute('data-theme',th);if(themeToggleIcon){const isDark=th==='dark';themeToggleIcon.classList.toggle('fa-toggle-on',isDark);themeToggleIcon.classList.toggle('fa-toggle-off',!isDark);themeToggle?.setAttribute('title',isDark?'Mudar tema: Claro':'Mudar tema: Escuro');const sun=themeToggle?.querySelector('.fa-sun');const moon=themeToggle?.querySelector('.fa-moon');if(sun)sun.style.display=isDark?'none':'inline-block';if(moon)moon.style.display=isDark?'inline-block':'none';}}
+    function toggleTheme() { /* ... */ currentTheme=body.getAttribute('data-theme')==='dark'?'light':'dark';localStorage.setItem('theme',currentTheme);applyTheme();updateCharts();}
+    function applyThemeColor() { /* ... */ const r=document.documentElement;if(!r)return;const p='theme-color-';const e=Array.from(r.classList).find(c=>c.startsWith(p));if(e)r.classList.remove(e);const s=localStorage.getItem('themeColor')||'masculine-1';r.classList.add(`${p}${s}`);selectedThemeColor=s;updateCharts();}
 
-    // Adicionar transação do modal
-    async function addTransactionFromModal(e) {
-        e.preventDefault();
-        
-        const date = modalDateInput.value;
-        const item = modalItemInput.value.trim();
-        const amount = parseFloat(modalAmountInput.value);
-        const type = modalTypeInput.value;
-        const category = modalCategoryInput.value;
-        const paymentMethod = modalPaymentMethodInput.value;
-        
-        if (!item || isNaN(amount)) {
-            await showAlert('Por favor, preencha todos os campos corretamente!');
-            return;
-        }
-        
-        // Check balance for expenses
-        if (type === 'expense') {
-            const { currentPix, currentCash, currentCard } = calculateCurrentBalances();
-            
-            if (paymentMethod === 'pix' && amount > currentPix) {
-                await showAlert('Saldo Pix insuficiente!');
-                return;
-            }
-            
-            if (paymentMethod === 'cash' && amount > currentCash) {
-                await showAlert('Saldo em Cédulas insuficiente!');
-                return;
-            }
-            
-            if (paymentMethod === 'card' && amount > currentCard) {
-                await showAlert('Saldo no Cartão insuficiente!');
-                return;
-            }
-        }
-        
-        const transaction = {
-            id: Date.now(),
-            date,
-            item,
-            amount,
-            type,
-            category,
-            paymentMethod,
-            isScheduled: false
-        };
-        
-        transactions.push(transaction);
-        saveTransactions();
-        renderTransactionHistory();
-        renderAllTransactions();
-        updateBalanceDisplay();
-        updateCharts();
-        checkEmptyState();
-        
-        closeModal(transactionModal);
-    }
-    
-    // Filter transactions
-    function filterTransactions() {
-        const typeFilter = document.getElementById('filterType2').value;
-        const categoryFilter = document.getElementById('filterCategory2').value;
-        const paymentFilter = document.getElementById('filterPayment2').value;
-        const searchTerm = document.getElementById('searchInput2').value.toLowerCase();
-        
-        const filtered = transactions.filter(transaction => {
-            return (typeFilter === 'all' || transaction.type === typeFilter) &&
-                   (categoryFilter === 'all' || transaction.category === categoryFilter) &&
-                   (paymentFilter === 'all' || transaction.paymentMethod === paymentFilter) &&
-                   (transaction.item.toLowerCase().includes(searchTerm) || 
-                    transaction.category.toLowerCase().includes(searchTerm));
-        });
-        
-        renderAllTransactions(filtered);
-    }
-    
-    // Clear filters
-    function clearFilters() {
-        document.getElementById('filterType2').value = 'all';
-        document.getElementById('filterCategory2').value = 'all';
-        document.getElementById('filterPayment2').value = 'all';
-        document.getElementById('searchInput2').value = '';
-        renderAllTransactions();
-    }
-    
-    // Toggle Sidebar
-    function toggleSidebar() {
-        sidebar.classList.toggle('open');
-    }
-    
-    // Show Section
-    function showSection(sectionId) {
-        // Hide all sections
-        contentSections.forEach(section => {
-            section.classList.remove('active');
-        });
-        
-        // Deactivate all menu items
-        menuItems.forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // Show selected section
-        const section = document.getElementById(`${sectionId}-section`);
-        if (section) {
-            section.classList.add('active');
-        } else {
-            console.error(`Seção ${sectionId} não encontrada`);
-            // Fallback para dashboard se a seção não existir
-            document.getElementById('dashboard-section').classList.add('active');
-            document.querySelector('.menu-item[data-section="dashboard"]').classList.add('active');
-            return;
-        }
-        
-        // Activate selected menu item
-        const menuItem = document.querySelector(`.menu-item[data-section="${sectionId}"]`);
-        if (menuItem) {
-            menuItem.classList.add('active');
-        }
-        
-        // Update page title
-        document.querySelector('.page-title').textContent = 
-            sectionId === 'dashboard' ? 'Dashboard Financeiro' : 
-            sectionId === 'transactions' ? 'Transações' :
-            sectionId === 'reports' ? 'Relatórios' :
-            sectionId === 'goals' ? 'Metas' :
-            sectionId === 'settings' ? 'Configurações' : 'Dashboard Financeiro';
-        
-        // Atualiza os valores iniciais quando a seção de configurações é aberta
-        if (sectionId === 'settings') {
-            document.getElementById('initialBalancePix').value = initialBalances.pix;
-            document.getElementById('initialBalanceCash').value = initialBalances.cash;
-            document.getElementById('initialBalanceCard').value = initialBalances.card;
-            updateBalanceDisplays();
-            
-            // Selecionar a cor do tema atual
-            document.querySelectorAll('.theme-color-option').forEach(option => {
-                option.classList.remove('selected');
-                if (option.dataset.color === selectedThemeColor) {
-                    option.classList.add('selected');
-                }
-            });
-        }
-    }
-    
-    // Toggle Theme
-    function toggleTheme() {
-        const isDark = body.getAttribute('data-theme') === 'dark';
-        body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-        themeToggleIcon.classList.toggle('fa-toggle-on', !isDark);
-        themeToggleIcon.classList.toggle('fa-toggle-off', isDark);
-        themeToggleIcon.classList.toggle('text-warning', !isDark);
-        
-        localStorage.setItem('theme', isDark ? 'light' : 'dark');
-    }
-    
-    // Apply Theme Color
-    function applyThemeColor() {
-        document.documentElement.style.setProperty('--primary-color', `var(--primary-${selectedThemeColor})`);
-    }
-    
-    // Update Category Dropdowns
-    function updateCategoryDropdowns() {
-        const type = modalTypeInput.value;
-        
-        // Update modal category dropdown
-        modalCategoryInput.innerHTML = categories[type].map(cat => 
-            `<option value="${cat}">${cat}</option>`
-        ).join('');
-        
-        // Update filter category dropdowns
-        document.querySelectorAll('#filterCategory, #filterCategory2').forEach(filter => {
-            filter.innerHTML = `
-                <option value="all">Todas Categorias</option>
-                ${categories.expense.concat(categories.income).map(cat => 
-                    `<option value="${cat}">${cat}</option>`
-                ).join('')}
-            `;
-        });
-    }
-    
-    // Handle Balance Actions (Add/Subtract)
-    function handleBalanceAction(e) {
-        e.preventDefault();
-        const method = this.dataset.method;
-        const input = document.getElementById(`initialBalance${method.charAt(0).toUpperCase() + method.slice(1)}`);
-        let value = parseFloat(input.value) || 0;
-        
-        if (this.classList.contains('add')) {
-            value += 100; // Adiciona R$ 100
-        } else {
-            value = Math.max(0, value - 100); // Subtrai R$ 100 (não pode ser negativo)
-        }
-        
-        input.value = value.toFixed(2);
-    }
-    
-    // Update Balance Displays (Settings)
-    function updateBalanceDisplays() {
-        document.getElementById('pixBalanceDisplay').textContent = formatCurrency(initialBalances.pix);
-        document.getElementById('cashBalanceDisplay').textContent = formatCurrency(initialBalances.cash);
-        document.getElementById('cardBalanceDisplay').textContent = formatCurrency(initialBalances.card);
-    }
-    
-    // Format Currency
-    function formatCurrency(value) {
-        return value.toLocaleString('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        });
-    }
-    
-    // Save Settings
-    function saveSettings() {
-        initialBalances = {
-            pix: parseFloat(document.getElementById('initialBalancePix').value) || 0,
-            cash: parseFloat(document.getElementById('initialBalanceCash').value) || 0,
-            card: parseFloat(document.getElementById('initialBalanceCard').value) || 0
-        };
-        
-        localStorage.setItem('initialBalances', JSON.stringify(initialBalances));
-        updateBalanceDisplay();
-        updateBalanceDisplays();
-        
-        // Feedback visual para o usuário
-        showSuccessFeedback(saveSettingsBtn, 'Salvo!');
-    }
-    
-    // Save User Settings
-    function saveUserSettings() {
-        userName = document.getElementById('userName').value;
-        userEmail = document.getElementById('userEmail').value;
-        currency = document.getElementById('currency').value;
-        selectedThemeColor = document.querySelector('.theme-color-option.selected').dataset.color;
-        
-        localStorage.setItem('userName', userName);
-        localStorage.setItem('userEmail', userEmail);
-        localStorage.setItem('currency', currency);
-        localStorage.setItem('themeColor', selectedThemeColor);
-        
-        // Atualizar no sidebar
-        document.querySelector('.user-name').textContent = userName;
-        document.querySelector('.user-email').textContent = userEmail;
-        
-        // Aplicar nova cor do tema
-        applyThemeColor();
-        
-        // Feedback visual para o usuário
-        showSuccessFeedback(saveUserSettingsBtn, 'Salvo!');
-    }
-    
-    // Show Success Feedback
-    function showSuccessFeedback(button, message) {
-        const originalText = button.innerHTML;
-        button.innerHTML = `<i class="fas fa-check"></i> ${message}`;
-        button.classList.add('btn-success');
-        
-        setTimeout(() => {
-            button.innerHTML = originalText;
-            button.classList.remove('btn-success');
-        }, 2000);
-    }
-    
-    // Open Add Transaction Modal
-    function openAddTransactionModal() {
-        // Reset form and set current date
-        const today = new Date().toISOString().split('T')[0];
-        modalDateInput.value = today;
-        transactionModalForm.reset();
-        updateCategoryDropdowns();
-        
-        // Open modal
-        transactionModal.classList.add('active');
-    }
-    
-    // Open Add Goal Modal
-    function openAddGoalModal() {
-        // Reset form and set current date
-        const today = new Date().toISOString().split('T')[0];
-        goalDateInput.value = today;
-        document.getElementById('goalForm').reset();
-        goalImagePreview.style.display = 'none';
-        
-        // Reset selected color
-        document.querySelectorAll('.theme-color-option').forEach(option => {
-            option.classList.remove('selected');
-            if (option.dataset.color === selectedThemeColor) {
-                option.classList.add('selected');
-            }
-        });
-        
-        // Reset edit index
-        currentEditIndex = null;
-        
-        // Open modal
-        goalModal.classList.add('active');
-    }
-    
-    // Save Goal
-    async function saveGoal() {
-        const name = goalNameInput.value.trim();
-        const target = parseFloat(goalTargetInput.value);
-        const date = goalDateInput.value;
-        const imageFile = goalImageInput.files[0];
-        const selectedColor = document.querySelector('.theme-color-option.selected').dataset.color;
-        const monthlyContribution = parseFloat(document.getElementById('monthlyContribution').value) || 0;
-        const goalType = document.getElementById('goalType').value;
-        
-        if (!name || isNaN(target) || !date) {
-            await showAlert('Por favor, preencha todos os campos obrigatórios!');
-            return;
-        }
-        
-        const goal = {
-            name,
-            target,
-            date,
-            themeColor: selectedColor,
-            monthlyContribution,
-            type: goalType
-        };
-        
-        if (imageFile) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                goal.image = event.target.result;
-                saveGoalToStorage(goal);
-            };
-            reader.readAsDataURL(imageFile);
-        } else {
-            saveGoalToStorage(goal);
-        }
-    }
-    
-    // Save Goal to Storage
-    function saveGoalToStorage(goal) {
-        if (currentEditIndex !== null) {
-            goals[currentEditIndex] = {
-                ...goal,
-                id: goals[currentEditIndex].id, // Manter o ID existente
-                current: goals[currentEditIndex].current || 0, // Manter o progresso atual
-                contributions: goals[currentEditIndex].contributions || [], // Manter histórico
-                completed: goals[currentEditIndex].completed || false // Manter status
-            };
-        } else {
-            const newGoal = {
-                ...goal,
-                id: Date.now(),
-                current: 0,
-                contributions: [],
-                completed: false,
-                createdAt: new Date().toISOString()
-            };
-            goals.push(newGoal);
-        }
-        
-        saveGoals();
-        renderGoals();
-        closeModal(goalModal);
-        currentEditIndex = null;
+    // --- Value Visibility ---
+    function applyValueVisibilityIconAndClass() { /* ... */ if(body&&valueToggleIcon){valuesHidden=localStorage.getItem('valuesHidden')==='true';body.classList.toggle('values-hidden',valuesHidden);valueToggleIcon.classList.toggle('fa-eye-slash',valuesHidden);valueToggleIcon.classList.toggle('fa-eye',!valuesHidden);valueToggle?.setAttribute('title',valuesHidden?'Mostrar valores':'Ocultar valores');updatePlaceholders();}}
+    function toggleValueVisibility() { /* ... */ valuesHidden=!valuesHidden;localStorage.setItem('valuesHidden',String(valuesHidden));refreshAllUIComponents();}
+    function updatePlaceholders() { /* ... */ const ph=formatPlaceholderCurrency();const ins=[modalAmountInput,editAmountInput,scheduledAmountInput,initialBalancePixInput,initialBalanceCashInput,initialBalanceCardInput,monthlyContributionInput];ins.filter(el=>el instanceof HTMLInputElement).forEach(i=>{i.placeholder=ph; if(valuesHidden) i.value = '';});goalsListContainer?.querySelectorAll('.contribution-input').forEach(i=>{if(i instanceof HTMLInputElement) i.placeholder=ph;});}
+    function loadSettingsValues() { /* ... */ if(!settingsSection)return;if(initialBalancePixInput instanceof HTMLInputElement)initialBalancePixInput.value=initialBalances.pix.toFixed(2);if(initialBalanceCashInput instanceof HTMLInputElement)initialBalanceCashInput.value=initialBalances.cash.toFixed(2);if(initialBalanceCardInput instanceof HTMLInputElement)initialBalanceCardInput.value=initialBalances.card.toFixed(2);updateBalanceDisplays();if(userNameInput instanceof HTMLInputElement)userNameInput.value=userName;if(userEmailInput instanceof HTMLInputElement)userEmailInput.value=userEmail;if(currencyInput instanceof HTMLSelectElement)currencyInput.value=currency;const theme=localStorage.getItem('themeColor')||'masculine-1';settingsSection.querySelectorAll('.theme-color-option').forEach(o=>o.classList.toggle('selected',o.dataset.color===theme));if(importDataInput instanceof HTMLInputElement)importDataInput.value='';updatePlaceholders();}
+
+    // --- Event Listeners Setup ---
+    function setupEventListeners() {
+        if (menuToggle) menuToggle.addEventListener('click', toggleSidebar);
+        if (closeSidebar) closeSidebar.addEventListener('click', toggleSidebar);
+        if (themeToggle) themeToggle.addEventListener('click', toggleTheme);
+        if (valueToggle) valueToggle.addEventListener('click', toggleValueVisibility);
+        menuItems.forEach(item => item.addEventListener('click', (e) => { const s = e.currentTarget?.dataset?.section; if (s) showSection(s); }));
+        if (addTransactionFab) addTransactionFab.addEventListener('click', openAddTransactionModal); // FAB
+        // Botões 'Adicionar Agendamento' (pode haver mais de um)
+        if (addScheduledPaymentBtn) addScheduledPaymentBtn.addEventListener('click', openScheduledPaymentModal);
+        if (addScheduledFromListBtn) addScheduledFromListBtn.addEventListener('click', openScheduledPaymentModal);
+        // Fechar Modais
+        document.querySelectorAll('.modal-overlay').forEach(overlay => { overlay.addEventListener('click', (e)=>{ const target=e.target; if(target===overlay || target.closest('.modal-close')) { if(overlay.id !== 'scheduledWarningModal' || target.closest('.modal-close')) { closeModal(overlay); }} }); });
+        if (alertModal && confirmAlert) confirmAlert.addEventListener('click', () => closeModal(alertModal));
+        const cdBtn = confirmModal?.querySelector('#cancelDelete'); if (cdBtn) cdBtn.addEventListener('click', () => closeModal(confirmModal));
+        // Salvar Modais
+        if(saveTransactionBtn) saveTransactionBtn.addEventListener('click', addTransactionFromModal);
+        if(saveEditBtn) saveEditBtn.addEventListener('click', saveEditedTransaction);
+        if(saveGoalBtn) saveGoalBtn.addEventListener('click', saveGoal);
+        if(saveScheduledPaymentBtn) saveScheduledPaymentBtn.addEventListener('click', saveScheduledPayment);
+        if(saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveSettings);
+        if(saveUserSettingsBtn) saveUserSettingsBtn.addEventListener('click', saveUserSettings);
+        // Cancelar Modais
+        if(cancelTransactionBtn) cancelTransactionBtn.addEventListener('click', () => closeModal(transactionModal));
+        if(cancelEditBtn) cancelEditBtn.addEventListener('click', () => closeModal(editModal));
+        if(cancelGoalBtn) cancelGoalBtn.addEventListener('click', () => closeModal(goalModal));
+        if(cancelScheduledPaymentBtn) cancelScheduledPaymentBtn.addEventListener('click', () => closeModal(scheduledPaymentModal));
+        // Dropdowns Dinâmicos
+        if (modalTypeInput instanceof HTMLSelectElement && modalCategoryInput instanceof HTMLSelectElement) modalTypeInput.addEventListener('change', () => updateCategoryDropdowns(modalCategoryInput, modalTypeInput.value || 'expense'));
+        if (editTypeInput instanceof HTMLSelectElement && editCategoryInput instanceof HTMLSelectElement) editTypeInput.addEventListener('change', () => updateCategoryDropdowns(editCategoryInput, editTypeInput.value || 'expense'));
+        // <<< Listener Agendamento Confirmado >>>
+        if (scheduledCategoryInput instanceof HTMLSelectElement) { console.log("Add listener: scheduledCategory CHANGE"); scheduledCategoryInput.addEventListener('change', handleScheduledCategoryChange); } else console.error("Listener Falha: #scheduledCategory não é select");
+        // Add Metas
+        addGoalBtns.forEach(b => b.addEventListener('click', openAddGoalModal));
+        // Meta Imagem
+        if (goalImageInput instanceof HTMLInputElement && goalImagePreview) { goalImageInput.addEventListener('change', (e) => { const f = e.target.files?.[0]; if (f) { const r=new FileReader(); r.onload=ev => {if (ev.target?.result && goalImagePreview instanceof HTMLImageElement) { goalImagePreview.src=ev.target.result.toString(); goalImagePreview.style.display='block'; const rm=goalImagePreview.parentElement?.querySelector('.remove-image-btn'); if(rm) rm.style.display='inline-block';}}; r.readAsDataURL(f);}}); }
+        // Listener para o botão X da imagem da meta (já está no HTML inline, pode ficar lá ou usar delegação aqui)
+
+        // Configurações (Handlers inline ou delegação)
+        if(settingsSection) settingsSection.addEventListener('click', (e)=>{ if(e.target.closest('.theme-color-option')) { const opt=e.target.closest('.theme-color-option'); if(opt?.dataset.color){ settingsSection.querySelectorAll('.theme-color-option').forEach(o=>o.classList.remove('selected')); opt.classList.add('selected'); selectedThemeColor = opt.dataset.color;} } });
+        // Import/Export
+        if(exportDataBtn) exportDataBtn.addEventListener('click', exportData); if(importDataBtn && importDataInput) importDataBtn.addEventListener('click', () => importDataInput.click()); if(importDataInput) importDataInput.addEventListener('change', handleFileImport);
+        // Filtros
+        [safeGetElementById('filterType2'), safeGetElementById('filterCategory2'), safeGetElementById('filterPayment2')].filter(el=>el instanceof HTMLSelectElement).forEach(el=>el.addEventListener('change', filterTransactions)); const searchIn=safeGetElementById('searchInput2'); if(searchIn instanceof HTMLInputElement) searchIn.addEventListener('input', debounce(filterTransactions, 300)); const clearF=safeGetElementById('clearFilters2'); if(clearF) clearF.addEventListener('click', clearFilters);
+        // Delegação Ações
+        if (allTransactionsContainer) allTransactionsContainer.addEventListener('click', (e)=>{const btn=e.target.closest('.action-btn'); const item=btn?.closest('.transaction-item'); const id=item?.dataset.id; if(!btn || !id) return; const idx=transactions.findIndex(t=>String(t.id)===String(id)); if(idx===-1) return; if(btn.classList.contains('edit-transaction')) openEditModal(idx); else if(btn.classList.contains('delete-transaction')){currentEditIndex=idx; confirmDeleteTransaction();} });
+        if (goalsListContainer) goalsListContainer.addEventListener('click', (e)=>{const t=e.target; const item=t.closest('.goal-item'); const id=item?.dataset.id; if(!item||!id)return; const idx=goals.findIndex(g=>String(g.id)===String(id)); if(idx===-1) return; if(t.closest('.edit-goal'))openEditGoalModal(idx); else if(t.closest('.delete-goal'))deleteGoal(idx); else if(t.closest('.complete-goal-btn'))completeGoal(idx); else if(t.closest('.add-contribution-btn')){const inp=item.querySelector('.contribution-input'); if(inp instanceof HTMLInputElement) addContribution(idx, inp.value);}});
+        const billActHandler=(e)=>{const btn=e.target.closest('.action-btn'); const item=btn?.closest('.bill-item'); const id=item?.dataset.id; if(!btn||!id) return; const idx=upcomingBills.findIndex(b=>String(b.id)===String(id)); if(idx===-1)return; if(btn.classList.contains('bill-pay-btn'))payScheduledBill(idx); else if(btn.classList.contains('delete-scheduled-item-btn'))deleteScheduledItem(idx);}; if(upcomingBillsContainer) upcomingBillsContainer.addEventListener('click', billActHandler); if(allScheduledPaymentsListContainer) allScheduledPaymentsListContainer.addEventListener('click', billActHandler);
     }
 
-    // Adicionar contribuição à meta
-    async function addContribution(goalId, amount) {
-        const goalIndex = goals.findIndex(g => g.id === goalId);
-        if (goalIndex !== -1) {
-            goals[goalIndex].current += amount;
-            goals[goalIndex].contributions.push({
-                date: new Date().toISOString().split('T')[0],
-                amount: amount
-            });
-            
-            // Verificar se a meta foi alcançada
-            if (goals[goalIndex].current >= goals[goalIndex].target && !goals[goalIndex].completed) {
-                goals[goalIndex].completed = true;
-                goals[goalIndex].completedAt = new Date().toISOString();
-                await showAlert(`Parabéns! Você alcançou a meta "${goals[goalIndex].name}"!`);
-            }
-            
-            saveGoals();
-            renderGoals();
-            updateGoalsSummary();
-        }
+
+    // --- Filtering Logic ---
+    function filterTransactions() { /*...*/ const ty=safeGetElementById('filterType2')?.value||'all';const ca=safeGetElementById('filterCategory2')?.value||'all';const pa=safeGetElementById('filterPayment2')?.value||'all';const se=safeGetElementById('searchInput2')?.value.toLowerCase().trim()||'';const filt=transactions.filter(t=>(ty==='all'||t.type===ty)&&(ca==='all'||t.category===ca)&&(pa==='all'||t.paymentMethod===pa)&&(se===''||t.item.toLowerCase().includes(se)||t.category.toLowerCase().includes(se)));renderAllTransactions(filt);}
+    function clearFilters() { /*...*/ const t=safeGetElementById('filterType2');if(t instanceof HTMLSelectElement)t.value='all';const c=safeGetElementById('filterCategory2');if(c instanceof HTMLSelectElement)c.value='all';const p=safeGetElementById('filterPayment2');if(p instanceof HTMLSelectElement)p.value='all';const s=safeGetElementById('searchInput2');if(s instanceof HTMLInputElement)s.value='';filterTransactions();}
+    function debounce(func, wait) { let t; return function(...a){const later=()=>{clearTimeout(t);func.apply(this,a);};clearTimeout(t);t=setTimeout(later,wait);}; }
+
+    // --- Charting Functions --- (Usando v3+)
+    const incomeExpenseColors = { income: 'rgba(25, 135, 84, 0.7)', expense: 'rgba(220, 53, 69, 0.7)', incomeBorder: 'rgb(25, 135, 84)', expenseBorder: 'rgb(220, 53, 69)' }; // Cores BS
+    function updateCharts() {
+        if (typeof Chart === 'undefined') { return; }
+        [expensesChart, incomeVsExpensesChart, paymentMethodsChart, expensesChart2, incomeVsExpensesChart2, paymentMethodsChart2, monthlyHistoryChart].forEach(ch => ch?.destroy?.());
+
+        const expByCat={},payMethUseExpense={pix:0,cash:0,card:0},monthData={};let totInc=0,totExp=0;
+        transactions.forEach(t=>{if(!t?.category||t.category.startsWith('--')||isNaN(t.amount))return; const mY=t.date.substring(0,7);if(!monthData[mY])monthData[mY]={income:0,expense:0};if(t.type==='expense'){totExp+=t.amount;expByCat[t.category]=(expByCat[t.category]||0)+t.amount;if(payMethUseExpense.hasOwnProperty(t.paymentMethod))payMethUseExpense[t.paymentMethod]+=t.amount;monthData[mY].expense+=t.amount;}else{totInc+=t.amount;monthData[mY].income+=t.amount;}});
+
+        const formatLabel = (ctx, valuePath='parsed') => { const l = ctx.label || ''; const v = valuePath === 'parsed.x' ? ctx.parsed?.x : (valuePath === 'parsed.y' ? ctx.parsed?.y : ctx.parsed) || 0; if(valuesHidden) return `${l}: ***`; const ds=ctx.dataset; let percent = ''; if(ctx.chart.config.type === 'pie' || ctx.chart.config.type === 'doughnut') { const total = ds.data.reduce((a,b)=> a + (typeof b === 'number' ? b : 0), 0); percent = total > 0 ? ` (${(v / total * 100).toFixed(0)}%)` : ''; } return `${l}: ${formatCurrency(v)}${percent}`; };
+        const pieTooltip = { callbacks: { label: (ctx)=>formatLabel(ctx,'parsed') } };
+        const hBarTooltip = { callbacks: { label: (ctx)=>formatLabel(ctx,'parsed.x') } };
+        const barTooltip = { callbacks: { label: (ctx)=>formatLabel(ctx,'parsed.y') } };
+        const legOpt = {position:'bottom',labels:{usePointStyle:true,boxWidth:8,padding:10,font:{size:10}}};
+        const expClrs = ['#0d6efd','#6f42c1','#d63384','#dc3545','#fd7e14','#ffc107','#198754','#20c997','#0dcaf0','#adb5bd']; // BS Colors
+        const payMClrs={pix:'#0dcaf0',cash:'#fd7e14',card:'#6f42c1',other:'#adb5bd'};
+        const showMsg=(ctx,msg="Sem dados")=>{if(!ctx?.canvas?.parentElement)return;const p=ctx.canvas.parentElement;p.querySelectorAll('.chart-empty-message').forEach(e=>e.remove());ctx.canvas.style.display='none';const m=document.createElement('p');m.className='chart-empty-message text-center text-muted p-3';m.innerHTML=`<i class="fas fa-chart-pie fa-2x mb-2 d-block"></i> ${msg}`;p.appendChild(m);};
+        const restoreCv=(ctx)=>{if(!ctx?.canvas?.parentElement)return;const p=ctx.canvas.parentElement;p.querySelectorAll('.chart-empty-message').forEach(e=>e.remove());ctx.canvas.style.display='block';};
+
+        const expLbls = Object.keys(expByCat).filter(cat=>expByCat[cat]>0).sort((a,b)=>expByCat[b]-expByCat[a]);
+        [expChartCtx, expChartCtx2].filter(Boolean).forEach((ctx,i)=>{if(expLbls.length>0){restoreCv(ctx);const d=expLbls.map(l=>expByCat[l]);const c=expLbls.map((_,ix)=>expClrs[ix%expClrs.length]);const cfg={type:'doughnut',data:{labels:expLbls,datasets:[{data:d,backgroundColor:c,borderColor:'var(--bg-color)',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:legOpt,tooltip:pieTooltip}}};if(i==0)expensesChart=new Chart(ctx,cfg);else expensesChart2=new Chart(ctx,cfg);}else{showMsg(ctx,"Nenhuma despesa");}});
+        [incExpChartCtx, incExpChartCtx2].filter(Boolean).forEach((ctx,i)=>{if(totInc>0||totExp>0){restoreCv(ctx);const cfg={type:'bar',data:{labels:['Receitas','Despesas'],datasets:[{data:[totInc,totExp],backgroundColor:[incomeExpenseColors.income,incomeExpenseColors.expense],borderColor:[incomeExpenseColors.incomeBorder,incomeExpenseColors.expenseBorder],borderWidth:1,borderRadius:4,barPercentage:0.6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,scales:{x:{beginAtZero:true,ticks:{callback:formatCurrency},grid:{color:'rgba(128,128,128,0.1)'}},y:{grid:{display:false}}},plugins:{legend:{display:false},tooltip:hBarTooltip}}};if(i==0)incomeVsExpensesChart=new Chart(ctx,cfg);else incomeVsExpensesChart2=new Chart(ctx,cfg);}else{showMsg(ctx,"Sem Receitas/Despesas");}});
+        const payLbls = Object.keys(payMethUseExpense).filter(m=>payMethUseExpense[m]>0);
+        [payMethChartCtx, payMethChartCtx2].filter(Boolean).forEach((ctx,i)=>{if(payLbls.length>0){restoreCv(ctx);const d=payLbls.map(m=>payMethUseExpense[m]);const c=payLbls.map(m=>payMClrs[m]||payMClrs.other);const l=payLbls.map(m=>m[0].toUpperCase()+m.slice(1));const cfg={type:'pie',data:{labels:l,datasets:[{data:d,backgroundColor:c,borderColor:'var(--bg-color)',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:legOpt,tooltip:pieTooltip}}};if(i==0)paymentMethodsChart=new Chart(ctx,cfg);else paymentMethodsChart2=new Chart(ctx,cfg);}else{showMsg(ctx,"Métodos não usados");}});
+        updateCashFlowReport(monthData);
+    }
+    function updateCashFlowReport(monthlyData) { // Já ok
+        if(monthlyHistoryChart?.destroy) monthlyHistoryChart.destroy();
+        if(!monHistChartCtx || typeof Chart === 'undefined') return;
+        const showE=()=>{/*...*/};const rest=()=>{/*...*/};const sM=Object.keys(monthlyData).sort();if(sM.length===0){/*showE()*/return;}/*rest()*/;
+        const lbs=sM.map(mY=>{const[y,m]=mY.split('-');return`${getMonthName(parseInt(m)-1)}/${y.slice(2)}`;});const inc=sM.map(m=>monthlyData[m].income);const exp=sM.map(m=>monthlyData[m].expense);const tickCb=(v)=>valuesHidden?'***':formatCurrency(v);
+        const barTooltip={callbacks:{label:(ctx)=>`${ctx.dataset.label||''}: ${valuesHidden?'***':formatCurrency(ctx.parsed?.y||0)}`}};
+        monthlyHistoryChart=new Chart(monHistChartCtx,{type:'bar',data:{labels:lbs,datasets:[{label:'Receitas',data:inc,backgroundColor:incomeExpenseColors.income,borderColor:incomeExpenseColors.incomeBorder,borderWidth:1},{label:'Despesas',data:exp,backgroundColor:incomeExpenseColors.expense,borderColor:incomeExpenseColors.expenseBorder,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:false,grid:{display:false}},y:{beginAtZero:true,stacked:false,ticks:{callback:tickCb},grid:{color:'rgba(128,128,128,0.1)'}}},plugins:{tooltip:barTooltip,legend:{position:'top'}}}});
     }
 
-    // Calcular projeção da meta
-    function calculateProjection(goal) {
-        if (!goal.monthlyContribution || goal.monthlyContribution <= 0) {
+    // --- UI Update Helpers ---
+    function refreshAllUIComponents() { console.log("UI Refresh..."); applyValueVisibilityIconAndClass(); updateBalanceDisplay(); updateBalanceDisplays(); renderTransactionHistory(); renderUpcomingBills(); renderGoals(); updateGoalsSummary(); const act=document.querySelector('.content-section.active'); if(act){ if(act.id==='transactions-section')filterTransactions(); else if(act.id==='scheduled-section')renderAllScheduledPayments(); else if(act.id==='settings-section')loadSettingsValues();} updateCharts(); updatePlaceholders();}
+    function updateUIafterTransactionChange() { console.log("UI Update: TX Change"); refreshAllUIComponents(); checkScheduledPayments(); }
+    function updateUIafterSettingsChange() { console.log("UI Update: Settings Change"); refreshAllUIComponents(); }
+    function updateUIafterImport() { console.log("UI Update: Import"); refreshAllUIComponents(); checkScheduledPayments(); loadSettingsValues(); showSection('dashboard'); }
+    function highlightNewTransaction(txId) { /*...*/ const h=(el)=>{if(!el)return;el.classList.add('new-transaction-highlight');el.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>el.classList.remove('new-transaction-highlight'),3500);};const hist=transactionHistoryContainer?.querySelector(`.transaction-item[data-id="${txId}"]`);const all=allTransactionsContainer?.querySelector(`.transaction-item[data-id="${txId}"]`);h(hist);if(allTransactionsContainer?.closest('.content-section')?.classList.contains('active'))h(all);}
+
+    // --- Inicialização ---
+    function init() {
+        console.log("Gestor Financeiro: Inicializando v1.8.2");
+        loadDataFromStorage();
+        applyTheme(); // Aplica tema salvo
+        applyThemeColor(); // Aplica cor salva
+        setupEventListeners(); // Configura todos os listeners
+        // Preenche nome/email
+        if (safeQuerySelector('.user-name')) safeQuerySelector('.user-name').textContent = userName;
+        if (safeQuerySelector('.user-email')) safeQuerySelector('.user-email').textContent = userEmail;
+        // Datas Padrão
+        [modalDateInput,editDateInput,goalDateInput,scheduledDateInput].filter(el=>el instanceof HTMLInputElement).forEach(inp=>inp.value=getLocalDateString());
+        // Popula Categorias Iniciais (Modais Adicionar/Editar)
+        if(modalCategoryInput&&modalTypeInput) updateCategoryDropdowns(modalCategoryInput,'expense');
+        if(editCategoryInput&&editTypeInput) updateCategoryDropdowns(editCategoryInput,'expense');
+        // O dropdown de Agendamento é populado ao abrir o modal respectivo
+
+        refreshAllUIComponents(); // Renderiza tudo
+        checkScheduledPayments(); // Verifica pendências
+        showSection('dashboard'); // Define a seção inicial
+        console.log("Gestor Financeiro: Pronto.");
+    }
+
+    // --- Início da Execução ---
+     if (typeof Chart !== 'undefined' && Chart.register) {
+         // Configurações Chart.js v3+
+         Chart.defaults.font.family="'Poppins', sans-serif";
+         Chart.defaults.color= getComputedStyle(document.documentElement).getPropertyValue('--text-color') || '#495057';
+         Chart.defaults.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color') || 'rgba(0,0,0,0.1)';
+         init(); // Inicia a aplicação
+     } else {
+        console.error("ERRO CRÍTICO: Chart.js (v3+) não carregado. Gráficos Indisponíveis.");
+        showAlert("Erro: Falha ao carregar biblioteca de gráficos. Gráficos não funcionarão.", 'danger');
+        init(); // Tenta iniciar o resto mesmo sem gráficos
+     }
+
+    // --- Expor Funções Globais (Para botões inline ou debug) ---
+    window.app = {
+        showSection,
+        openAddGoalModal, // Expor para botões no HTML
+        openScheduledPaymentModal, // Expor para botões no HTML
+        forceCheck: checkScheduledPayments, // Para debug
+        getData: (key) => { // Para debug
+            if(key==='transactions')return JSON.parse(JSON.stringify(transactions));
+            if(key==='upcomingBills')return JSON.parse(JSON.stringify(upcomingBills));
+            if(key==='goals')return JSON.parse(JSON.stringify(goals));
             return null;
         }
-        
-        const remaining = goal.target - goal.current;
-        const monthsNeeded = Math.ceil(remaining / goal.monthlyContribution);
-        const completionDate = new Date();
-        completionDate.setMonth(completionDate.getMonth() + monthsNeeded);
-        
-        return {
-            monthsNeeded,
-            completionDate: completionDate.toISOString().split('T')[0]
-        };
-    }
-
-    // Verificar progresso das metas
-    function checkGoalsProgress() {
-        goals.forEach(goal => {
-            if (goal.completed) return;
-            
-            const progress = (goal.current / goal.target) * 100;
-            const daysLeft = Math.ceil((new Date(goal.date) - new Date()) / (1000 * 60 * 60 * 24));
-            
-            if (progress < 50 && daysLeft < 30) {
-                showAlert(`Meta "${goal.name}" em risco! Apenas ${Math.floor(progress)}% alcançado com ${daysLeft} dias restantes.`);
-            }
-        });
-    }
-    
-    // Save Goals
-    function saveGoals() {
-        localStorage.setItem('goals', JSON.stringify(goals));
-    }
-    
-    // Calculate Balances
-    function calculateCurrentBalances() {
-        let currentPix = initialBalances.pix;
-        let currentCash = initialBalances.cash;
-        let currentCard = initialBalances.card;
-        
-        transactions.forEach(transaction => {
-            if (transaction.type === 'expense') {
-                if (transaction.paymentMethod === 'pix') currentPix -= transaction.amount;
-                else if (transaction.paymentMethod === 'cash') currentCash -= transaction.amount;
-                else if (transaction.paymentMethod === 'card') currentCard -= transaction.amount;
-            } else {
-                if (transaction.paymentMethod === 'pix') currentPix += transaction.amount;
-                else if (transaction.paymentMethod === 'cash') currentCash += transaction.amount;
-                else if (transaction.paymentMethod === 'card') currentCard += transaction.amount;
-            }
-        });
-        
-        return { currentPix, currentCash, currentCard };
-    }
-    
-    // Update Balance Display
-    function updateBalanceDisplay() {
-        const { currentPix, currentCash, currentCard } = calculateCurrentBalances();
-        
-        remainingBalancePix.textContent = formatCurrency(currentPix);
-        remainingBalanceCash.textContent = formatCurrency(currentCash);
-        remainingBalanceCard.textContent = formatCurrency(currentCard);
-        
-        // Update color based on balance
-        remainingBalancePix.className = `card-value ${currentPix >= 0 ? 'card-positive' : 'card-negative'}`;
-        remainingBalanceCash.className = `card-value ${currentCash >= 0 ? 'card-positive' : 'card-negative'}`;
-        remainingBalanceCard.className = `card-value ${currentCard >= 0 ? 'card-positive' : 'card-negative'}`;
-    }
-    
-    // Render Transaction History
-    function renderTransactionHistory(transactionsToRender = transactions.slice(0, 5)) {
-        const container = document.getElementById('transactionHistory');
-        container.innerHTML = '';
-        
-        if (transactionsToRender.length === 0) {
-            document.getElementById('emptyState').style.display = 'block';
-            return;
-        }
-        
-        transactionsToRender.forEach(transaction => {
-            const transactionEl = document.createElement('div');
-            transactionEl.className = 'transaction-item';
-            
-            // Ícone baseado na categoria
-            const iconClass = transaction.type === 'income' ? 'fa-arrow-up' : 'fa-arrow-down';
-            const iconBg = transaction.type === 'income' ? 'success' : 'danger';
-            
-            let paymentMethodIcon = '';
-            switch(transaction.paymentMethod) {
-                case 'pix': 
-                    paymentMethodIcon = '<i class="fas fa-qrcode"></i>';
-                    break;
-                case 'cash': 
-                    paymentMethodIcon = '<i class="fas fa-money-bill-wave"></i>';
-                    break;
-                case 'card': 
-                    paymentMethodIcon = '<i class="fas fa-credit-card"></i>';
-                    break;
-            }
-            
-            transactionEl.innerHTML = `
-                <div class="transaction-icon bg-${iconBg}">
-                    <i class="fas ${iconClass}"></i>
-                </div>
-                <div class="transaction-details">
-                    <div class="transaction-title">${transaction.item} 
-                        ${transaction.isScheduled ? '<span class="scheduled-tag"><i class="fas fa-calendar-check"></i> Agendado</span>' : ''}
-                    </div>
-                    <div class="transaction-meta">
-                        <span>${new Date(transaction.date).toLocaleDateString('pt-BR')}</span>
-                        <span>${transaction.category}</span>
-                    </div>
-                    <div class="transaction-payment-method ${transaction.paymentMethod}">
-                        ${paymentMethodIcon} ${transaction.paymentMethod.charAt(0).toUpperCase() + transaction.paymentMethod.slice(1)}
-                    </div>
-                </div>
-                <div class="transaction-amount ${transaction.type === 'income' ? 'amount-positive' : 'amount-negative'}">
-                    ${transaction.type === 'income' ? '+' : '-'} ${formatCurrency(transaction.amount)}
-                </div>
-            `;
-            
-            container.appendChild(transactionEl);
-        });
-        
-        document.getElementById('emptyState').style.display = 'none';
-    }
-    
-    // Render All Transactions
-    function renderAllTransactions(transactionsToRender = transactions) {
-        const container = document.getElementById('allTransactions');
-        container.innerHTML = '';
-        
-        if (transactionsToRender.length === 0) {
-            document.getElementById('emptyState2').style.display = 'block';
-            return;
-        }
-        
-        transactionsToRender.forEach((transaction, index) => {
-            const transactionEl = document.createElement('div');
-            transactionEl.className = 'transaction-item';
-            transactionEl.dataset.index = index;
-            
-            // Ícone baseado na categoria
-            const iconClass = transaction.type === 'income' ? 'fa-arrow-up' : 'fa-arrow-down';
-            const iconBg = transaction.type === 'income' ? 'success' : 'danger';
-            
-            let paymentMethodIcon = '';
-            switch(transaction.paymentMethod) {
-                case 'pix': 
-                    paymentMethodIcon = '<i class="fas fa-qrcode"></i>';
-                    break;
-                case 'cash': 
-                    paymentMethodIcon = '<i class="fas fa-money-bill-wave"></i>';
-                    break;
-                case 'card': 
-                    paymentMethodIcon = '<i class="fas fa-credit-card"></i>';
-                    break;
-            }
-            
-            // HTML da transação
-            transactionEl.innerHTML = `
-                <div class="transaction-icon bg-${iconBg}">
-                    <i class="fas ${iconClass}"></i>
-                </div>
-                <div class="transaction-details">
-                    <div class="transaction-title">${transaction.item} 
-                        ${transaction.isScheduled ? '<span class="scheduled-tag"><i class="fas fa-calendar-check"></i> Agendado</span>' : ''}
-                    </div>
-                    <div class="transaction-meta">
-                        <span>${new Date(transaction.date).toLocaleDateString('pt-BR')}</span>
-                        <span>${transaction.category}</span>
-                    </div>
-                    <div class="transaction-payment-method ${transaction.paymentMethod}">
-                        ${paymentMethodIcon} ${transaction.paymentMethod.charAt(0).toUpperCase() + transaction.paymentMethod.slice(1)}
-                    </div>
-                </div>
-                <div class="transaction-amount ${transaction.type === 'income' ? 'amount-positive' : 'amount-negative'}">
-                    ${transaction.type === 'income' ? '+' : '-'} ${formatCurrency(transaction.amount)}
-                </div>
-                ${!transaction.isFixed ? `
-                <div class="transaction-actions">
-                    <button class="action-btn edit" onclick="window.app.openEditModal(${index})">
-                        <i class="fas fa-pencil"></i>
-                    </button>
-                    <button class="action-btn delete" onclick="window.app.openDeleteModal(${index})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-                ` : ''}
-            `;
-            
-            container.appendChild(transactionEl);
-        });
-        
-        document.getElementById('emptyState2').style.display = 'none';
-    }
-    
-    // Render Upcoming Bills
-    function renderUpcomingBills() {
-        const container = document.getElementById('upcomingBills');
-        container.innerHTML = '';
-        
-        if (upcomingBills.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state" style="padding: 1rem;">
-                    <i class="fas fa-calendar" style="font-size: 1.5rem;"></i>
-                    <p>Nenhum pagamento agendado</p>
-                </div>
-            `;
-            return;
-        }
-        
-        // Ordenar por data mais próxima
-        upcomingBills.sort((a, b) => new Date(a.date) - new Date(b.date));
-        
-        upcomingBills.forEach((bill, index) => {
-            const billEl = document.createElement('div');
-            billEl.className = 'bill-item';
-            
-            const formattedDate = new Date(bill.date).toLocaleDateString('pt-BR');
-            const today = new Date().toISOString().split('T')[0];
-            const isOverdue = bill.date < today && !bill.paid;
-            
-            let statusText = '';
-            if (bill.paid) {
-                statusText = `Pago em ${new Date(bill.processedDate).toLocaleDateString('pt-BR')}`;
-            } else if (bill.insufficientBalance) {
-                statusText = 'Saldo insuficiente';
-            } else if (bill.pending) {
-                statusText = 'Aguardando confirmação';
-            } else if (isOverdue) {
-                statusText = 'Vencido';
-            } else {
-                statusText = `Vence em ${formattedDate}`;
-            }
-            
-            let paymentMethodIcon = '';
-            switch(bill.paymentMethod) {
-                case 'pix': 
-                    paymentMethodIcon = '<i class="fas fa-qrcode"></i>';
-                    break;
-                case 'cash': 
-                    paymentMethodIcon = '<i class="fas fa-money-bill-wave"></i>';
-                    break;
-                case 'card': 
-                    paymentMethodIcon = '<i class="fas fa-credit-card"></i>';
-                    break;
-            }
-            
-            billEl.innerHTML = `
-                <div class="bill-details">
-                    <div class="bill-title">${bill.name}</div>
-                    <div class="bill-meta">
-                        <span>${statusText}</span>
-                        <span>${paymentMethodIcon} ${bill.paymentMethod.charAt(0).toUpperCase() + bill.paymentMethod.slice(1)}</span>
-                    </div>
-                </div>
-                <div class="bill-amount">- ${formatCurrency(bill.amount)}</div>
-                <div class="bill-actions">
-                    ${!bill.paid && bill.pending ? 
-                        `<button class="bill-pay-btn" onclick="window.app.payScheduledBill(${index})">
-                            <i class="fas fa-check"></i> Confirmar Pagamento
-                        </button>` : ''}
-                    <button class="action-btn delete" onclick="window.app.deleteUpcomingBill(${index})">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-            
-            if (isOverdue) {
-                billEl.style.borderLeft = '4px solid var(--danger-color)';
-            } else if (bill.pending) {
-                billEl.style.borderLeft = '4px solid var(--warning-color)';
-            } else if (bill.paid) {
-                billEl.style.borderLeft = '4px solid var(--success-color)';
-            }
-            
-            container.appendChild(billEl);
-        });
-    }
-    
-    // Delete Upcoming Bill
-    async function deleteUpcomingBill(index) {
-        const confirmed = await showConfirmModal('Deseja realmente excluir este pagamento agendado?');
-        if (confirmed) {
-            upcomingBills.splice(index, 1);
-            saveUpcomingBills();
-            renderUpcomingBills();
-        }
-    }
-    
-    // Save Upcoming Bills
-    function saveUpcomingBills() {
-        localStorage.setItem('upcomingBills', JSON.stringify(upcomingBills));
-    }
-    
-    // Open Edit Modal
-    async function openEditModal(index) {
-        const transaction = transactions[index];
-        
-        // Verificar se é uma transação agendada
-        if (transaction.isScheduled) {
-            await showAlert('Transações agendadas não podem ser editadas. Você pode cancelar o pagamento agendado na seção de Pagamentos Agendados.');
-            return;
-        }
-        
-        currentEditIndex = index;
-        
-        // Preencher o modal de edição
-        document.getElementById('editDate').value = transaction.date;
-        document.getElementById('editItem').value = transaction.item;
-        document.getElementById('editAmount').value = transaction.amount;
-        document.getElementById('editType').value = transaction.type;
-        
-        // Atualizar categorias
-        const editCategory = document.getElementById('editCategory');
-        editCategory.innerHTML = categories[transaction.type].map(cat => 
-            `<option value="${cat}">${cat}</option>`
-        ).join('');
-        editCategory.value = transaction.category;
-        
-        document.getElementById('editPaymentMethod').value = transaction.paymentMethod;
-        
-        // Abrir modal
-        editModal.classList.add('active');
-    }
-    
-    // Open Delete Modal
-    function openDeleteModal(index) {
-        currentEditIndex = index;
-        confirmModal.classList.add('active');
-    }
-    
-    // Confirm Delete Transaction
-    function confirmDeleteTransaction() {
-        if (currentEditIndex !== null) {
-            transactions.splice(currentEditIndex, 1);
-            saveTransactions();
-            renderTransactionHistory();
-            renderAllTransactions();
-            updateBalanceDisplay();
-            updateCharts();
-            checkEmptyState();
-            currentEditIndex = null;
-        }
-        closeModal(confirmModal);
-    }
-    
-    // Save Edited Transaction
-    function saveEditedTransaction() {
-        if (currentEditIndex === null) return;
-        
-        const transaction = transactions[currentEditIndex];
-        
-        transaction.date = document.getElementById('editDate').value;
-        transaction.item = document.getElementById('editItem').value.trim();
-        transaction.amount = parseFloat(document.getElementById('editAmount').value);
-        transaction.type = document.getElementById('editType').value;
-        transaction.category = document.getElementById('editCategory').value;
-        transaction.paymentMethod = document.getElementById('editPaymentMethod').value;
-        
-        saveTransactions();
-        renderTransactionHistory();
-        renderAllTransactions();
-        updateBalanceDisplay();
-        updateCharts();
-        checkEmptyState();
-        
-        closeModal(editModal);
-    }
-    
-    // Render Goals
-    function renderGoals() {
-        const container = document.getElementById('goalsList');
-        container.innerHTML = '';
-        
-        if (goals.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state" style="padding: 2rem;">
-                    <i class="fas fa-bullseye" style="font-size: 2rem;"></i>
-                    <h3>Nenhuma meta definida</h3>
-                    <p>Crie sua primeira meta para começar a economizar</p>
-                </div>
-            `;
-            return;
-        }
-        
-        // Separar metas concluídas e ativas
-        const completedGoals = goals.filter(g => g.completed);
-        const activeGoals = goals.filter(g => !g.completed);
-        
-        // Render metas ativas
-        activeGoals.forEach((goal, index) => renderGoalItem(container, goal, index));
-        
-        // Render metas concluídas se houver
-        if (completedGoals.length > 0) {
-            const completedSection = document.createElement('div');
-            completedSection.className = 'completed-goals';
-            completedSection.innerHTML = `
-                <h3>Metas Concluídas</h3>
-            `;
-            
-            container.appendChild(completedSection);
-            completedGoals.forEach((goal, index) => renderGoalItem(completedSection, goal, index, true));
-        }
-        
-        // Atualizar resumo no dashboard
-        updateGoalsSummary();
-    }
-    
-    // Render Goal Item
-    function renderGoalItem(container, goal, index, isCompleted = false) {
-        const goalEl = document.createElement('div');
-        goalEl.className = `goal-item ${isCompleted ? 'completed' : ''}`;
-        goalEl.dataset.id = goal.id;
-        
-        // Calcular progresso e tempo restante
-        const progress = Math.min((goal.current / goal.target) * 100, 100);
-        const today = new Date();
-        const goalDate = new Date(goal.date);
-        const timeDiff = goalDate - today;
-        const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-        
-        let timeLeftText = '';
-        if (daysLeft < 0) {
-            timeLeftText = 'Meta vencida';
-        } else if (daysLeft < 30) {
-            timeLeftText = `Faltam ${daysLeft} dias`;
-        } else {
-            const monthsLeft = Math.ceil(daysLeft / 30);
-            timeLeftText = `Faltam ${monthsLeft} meses`;
-        }
-        
-        // Calcular projeção se houver contribuição mensal
-        const projection = goal.monthlyContribution > 0 ? calculateProjection(goal) : null;
-        
-        goalEl.innerHTML = `
-            <div class="goal-header">
-                <div class="goal-content">
-                    ${goal.image ? `<img src="${goal.image}" class="goal-image" alt="${goal.name}">` : ''}
-                    <div>
-                        <h3>${goal.name}</h3>
-                        <div class="goal-time-left">${isCompleted ? 'Concluída!' : timeLeftText}</div>
-                        <div class="goal-type">${getGoalTypeName(goal.type)}</div>
-                    </div>
-                </div>
-                <div class="goal-actions">
-                    <button class="action-btn edit-goal">
-                        <i class="fas fa-pencil"></i>
-                    </button>
-                    <button class="action-btn delete-goal">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="progress-container">
-                <div class="progress-bar" style="width: ${progress}%; background: var(--primary-${goal.themeColor || 'masculine-1'})"></div>
-            </div>
-            
-            <div class="goal-progress-info">
-                <span>${formatCurrency(goal.current)} de ${formatCurrency(goal.target)} (${Math.round(progress)}%)</span>
-            </div>
-            
-            ${projection && !isCompleted ? `
-            <div class="projection-info">
-                <small>Projeção: ${projection.monthsNeeded} meses (${projection.completionDate})</small>
-            </div>
-            ` : ''}
-            
-            ${!isCompleted ? `
-            <div class="goal-contribution">
-                <input type="number" id="contribution-${goal.id}" placeholder="Valor da contribuição" class="form-control">
-                <button class="btn btn-sm" onclick="window.app.addContribution(${goal.id}, document.getElementById('contribution-${goal.id}').value)">
-                    Adicionar
-                </button>
-            </div>
-            ` : ''}
-            
-            ${!isCompleted && progress >= 100 ? `
-            <button class="complete-goal-btn" onclick="window.app.completeGoal(${goal.id})">
-                Concluir Meta
-            </button>
-            ` : ''}
-        `;
-        
-        container.appendChild(goalEl);
-    }
-
-    function getGoalTypeName(type) {
-        const types = {
-            'travel': 'Viagem',
-            'electronics': 'Eletrônicos',
-            'education': 'Educação',
-            'emergency': 'Fundo de Emergência',
-            'other': 'Outro'
-        };
-        return types[type] || type;
-    }
-
-    function updateGoalsSummary() {
-        const summaryContainer = document.querySelector('.goals-summary');
-        if (!summaryContainer) return;
-        
-        const activeGoals = goals.filter(g => !g.completed);
-        const completedGoals = goals.filter(g => g.completed);
-        
-        let totalActive = 0;
-        let totalSaved = 0;
-        let totalNeeded = 0;
-        
-        activeGoals.forEach(goal => {
-            totalActive++;
-            totalSaved += goal.current;
-            totalNeeded += (goal.target - goal.current);
-        });
-        
-        summaryContainer.innerHTML = `
-            <div class="goals-summary-grid">
-                <div class="summary-card">
-                    <h4>Metas Ativas</h4>
-                    <div class="summary-value">${totalActive}</div>
-                </div>
-                <div class="summary-card">
-                    <h4>Total Economizado</h4>
-                    <div class="summary-value">${formatCurrency(totalSaved)}</div>
-                </div>
-                <div class="summary-card">
-                    <h4>Falta Economizar</h4>
-                    <div class="summary-value">${formatCurrency(totalNeeded)}</div>
-                </div>
-                <div class="summary-card">
-                    <h4>Metas Concluídas</h4>
-                    <div class="summary-value">${completedGoals.length}</div>
-                </div>
-            </div>
-            
-            ${activeGoals.length > 0 ? `
-            <div class="goals-priority">
-                <h4>Prioridades</h4>
-                ${activeGoals
-                    .sort((a, b) => (new Date(a.date) - new Date(b.date)))
-                    .slice(0, 3)
-                    .map(goal => `
-                        <div class="priority-item">
-                            <div class="priority-name">${goal.name}</div>
-                            <div class="priority-date">${new Date(goal.date).toLocaleDateString('pt-BR')}</div>
-                            <div class="priority-progress">
-                                <div class="progress-bar" style="width: ${Math.min((goal.current / goal.target) * 100, 100)}%"></div>
-                            </div>
-                        </div>
-                    `).join('')}
-            </div>
-            ` : ''}
-        `;
-    }
-    
-    // Open Edit Goal Modal
-    function openEditGoalModal(index) {
-        const goal = goals[index];
-        currentEditIndex = index;
-        
-        goalNameInput.value = goal.name;
-        goalTargetInput.value = goal.target;
-        goalDateInput.value = goal.date;
-        document.getElementById('goalType').value = goal.type || 'other';
-        document.getElementById('monthlyContribution').value = goal.monthlyContribution || '';
-        
-        if (goal.image) {
-            goalImagePreview.src = goal.image;
-            goalImagePreview.style.display = 'block';
-        } else {
-            goalImagePreview.style.display = 'none';
-        }
-        
-        // Selecionar a cor do tema
-        document.querySelectorAll('.theme-color-option').forEach(option => {
-            option.classList.remove('selected');
-            if (option.dataset.color === goal.themeColor) {
-                option.classList.add('selected');
-            }
-        });
-        
-        // Abrir modal
-        goalModal.classList.add('active');
-    }
-    
-    // Complete Goal
-    async function completeGoal(goalId) {
-        const goalIndex = goals.findIndex(g => g.id === goalId);
-        if (goalIndex !== -1) {
-            goals[goalIndex].completed = true;
-            goals[goalIndex].completedAt = new Date().toISOString();
-            saveGoals();
-            renderGoals();
-            await showAlert(`Parabéns! Você concluiu a meta "${goals[goalIndex].name}"!`);
-        }
-    }
-    
-    // Delete Goal
-    async function deleteGoal(index) {
-        const confirmed = await showConfirmModal('Deseja realmente excluir esta meta?');
-        if (confirmed) {
-            goals.splice(index, 1);
-            saveGoals();
-            renderGoals();
-            updateGoalsSummary();
-        }
-    }
-    
-    // Update Charts
-    function updateCharts() {
-        // Verificar se há dados para mostrar
-        const hasExpenseData = transactions.some(t => t.type === 'expense');
-        const hasIncomeData = transactions.some(t => t.type === 'income');
-        
-        if (!hasExpenseData && !hasIncomeData) {
-            document.querySelectorAll('.chart-container').forEach(container => {
-                container.innerHTML = '<p style="color: var(--text-light); font-style: italic;">Nenhum dado disponível</p>';
-            });
-            return;
-        }
-        
-        // Expenses by Category
-        const expensesByCategory = transactions
-            .filter(t => t.type === 'expense')
-            .reduce((acc, t) => {
-                acc[t.category] = (acc[t.category] || 0) + t.amount;
-                return acc;
-            }, {});
-        
-        // Income vs Expenses
-        const totalIncome = transactions
-            .filter(t => t.type === 'income')
-            .reduce((sum, t) => sum + t.amount, 0);
-        
-        const totalExpenses = transactions
-            .filter(t => t.type === 'expense')
-            .reduce((sum, t) => sum + t.amount, 0);
-        
-        // Payment Methods
-        const paymentMethods = transactions.reduce((acc, t) => {
-            acc[t.paymentMethod] = (acc[t.paymentMethod] || 0) + t.amount;
-            return acc;
-        }, {});
-        
-        // Destroy existing charts if they exist
-        if (expensesChart) expensesChart.destroy();
-        if (incomeVsExpensesChart) incomeVsExpensesChart.destroy();
-        if (paymentMethodsChart) paymentMethodsChart.destroy();
-        
-        // Expenses by Category Chart
-        expensesChart = new Chart(expensesChartCtx, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(expensesByCategory),
-                datasets: [{
-                    data: Object.values(expensesByCategory),
-                    backgroundColor: [
-                        '#f72585',
-                        '#b5179e',
-                        '#7209b7',
-                        '#560bad',
-                        '#480ca8',
-                        '#3a0ca3',
-                        '#3f37c9',
-                        '#4361ee',
-                        '#4895ef',
-                        '#4cc9f0'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.raw || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = Math.round((value / total) * 100);
-                                return `${label}: ${formatCurrency(value)} (${percentage}%)`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Income vs Expenses Chart
-        incomeVsExpensesChart = new Chart(incomeVsExpensesChartCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Receitas', 'Despesas'],
-                datasets: [{
-                    label: 'Valor',
-                    data: [totalIncome, totalExpenses],
-                    backgroundColor: [
-                        '#4cc9f0',
-                        '#f72585'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return formatCurrency(context.raw);
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Payment Methods Chart
-        paymentMethodsChart = new Chart(paymentMethodsChartCtx, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(paymentMethods).map(method => {
-                    switch (method) {
-                        case 'pix': return 'Pix';
-                        case 'cash': return 'Dinheiro';
-                        case 'card': return 'Cartão';
-                        default: return method;
-                    }
-                }),
-                datasets: [{
-                    data: Object.values(paymentMethods),
-                    backgroundColor: [
-                        '#4895ef',
-                        '#f8961e',
-                        '#f72585'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.raw || 0;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = Math.round((value / total) * 100);
-                                return `${label}: ${formatCurrency(value)} (${percentage}%)`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    // Check Empty State
-    function checkEmptyState() {
-        if (transactions.length === 0) {
-            document.getElementById('emptyState').style.display = 'block';
-        } else {
-            document.getElementById('emptyState').style.display = 'none';
-        }
-    }
-    
-    // Save Transactions
-    function saveTransactions() {
-        localStorage.setItem('transactions', JSON.stringify(transactions));
-    }
-    
-    // Close Modal
-    function closeModal(modal) {
-        modal.classList.remove('active');
-        currentEditIndex = null;
-    }
-    
-    // Initialize the app
-    init();
-    
-    // Expose functions to global scope for inline event handlers
-    window.app = {
-        openEditModal,
-        openDeleteModal,
-        openEditGoalModal,
-        deleteGoal,
-        completeGoal,
-        deleteUpcomingBill,
-        payScheduledBill,
-        showSection,
-        addContribution: function(goalId, amount) {
-            const input = document.getElementById(`contribution-${goalId}`);
-            const amountValue = parseFloat(amount);
-            
-            if (!isNaN(amountValue) && amountValue > 0) {
-                addContribution(goalId, amountValue);
-                input.value = '';
-            } else {
-                showAlert('Por favor, insira um valor válido para a contribuição.');
-            }
-        },
-        completeGoal: function(goalId) {
-            const goalIndex = goals.findIndex(g => g.id === goalId);
-            if (goalIndex !== -1) {
-                goals[goalIndex].completed = true;
-                goals[goalIndex].completedAt = new Date().toISOString();
-                saveGoals();
-                renderGoals();
-                showAlert(`Parabéns! Você concluiu a meta "${goals[goalIndex].name}"!`);
-            }
-        },
-        openAddGoalModal,
-        saveGoal,
-        addTransactionFromModal,
-        openAddTransactionModal
     };
-});
+
+}); // Fim do DOMContentLoaded

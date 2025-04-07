@@ -1918,3 +1918,334 @@ input[type="date"]:focus {
   height: 100%;
   background-color: var(--primary-color);
 }
+
+
+/* Adicione no final do arquivo */
+.data-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}
+
+.data-actions .btn {
+    flex: 1;
+}
+
+#importDataInput {
+    display: none;
+}
+
+.import-instructions {
+    font-size: var(--font-size-xs);
+    color: var(--text-light);
+    margin-top: var(--space-xs);
+}
+
+
+/* Estilos para as metas - ocupando quase toda a largura */
+.goals-container {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.goal-item {
+  width: 95%;
+  max-width: none;
+  margin: 0 auto;
+  padding: 1.5rem;
+  transition: transform 0.2s ease;
+}
+
+.goal-item:hover {
+  transform: translateY(-3px);
+}
+
+/* Ajustar o conteúdo da meta */
+.goal-content {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.goal-image {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--border-radius-sm);
+  object-fit: cover;
+}
+
+/* Ajustar o progresso */
+.progress-container {
+  margin: 1rem 0;
+}
+
+/* Ajustar botões de ação */
+.goal-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+.goal-contribution {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.goal-contribution input {
+  flex: 1;
+}
+
+.goal-contribution button {
+  padding: 0.5rem 1rem;
+}
+
+
+/* Ajustar o espaçamento geral */
+.content-section {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Ajustar cards para ocupar melhor o espaço */
+.card {
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+/* Melhorar o layout do dashboard */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Ajustar os gráficos para responsividade */
+.charts-row {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+
+/* Para arredondar imagens das Metas */
+.goal-image {
+    width: 60px; /* Ou o tamanho desejado */
+    height: 60px;
+    object-fit: cover; /* Garante que a imagem cubra a área sem distorcer */
+    border-radius: 8px; /* Arredonda os cantos */
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.goal-image-placeholder {
+    width: 60px;
+    height: 60px;
+    background-color: var(--bg-alt-color);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--text-lighter);
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+
+/* Para o botão de remover imagem da meta */
+.image-upload-container {
+    position: relative; /* Necessário para posicionar o botão 'x' */
+    /* outros estilos do container... */
+    border: 2px dashed var(--border-color);
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    margin-top: 1rem;
+    min-height: 100px; /* Altura mínima */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+.image-upload-container:hover {
+    background-color: var(--bg-alt-color);
+}
+
+
+.goal-form-image-preview {
+    max-width: 100%; /* Garante que a imagem não ultrapasse o container */
+    max-height: 150px; /* Limita a altura da pré-visualização */
+    width: auto;
+    height: auto;
+    object-fit: contain; /* Mantém a proporção da imagem */
+    display: block;
+    margin: 0.5rem auto; /* Centraliza a imagem preview */
+    border-radius: 4px; /* Cantos arredondados para a preview */
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    line-height: 18px; /* Centraliza o 'x' verticalmente */
+    text-align: center;
+    cursor: pointer;
+    display: none; /* Inicialmente escondido, mostrado via JS */
+    z-index: 10; /* Para ficar sobre a imagem */
+}
+
+
+/* Indicador visual para transação originada de agendamento */
+.transaction-item.is-scheduled-transaction {
+    /* Pode adicionar um fundo levemente diferente, ou borda */
+    /* background-color: var(--bg-scheduled-highlight, #f0f8ff); */ /* Exemplo: Azul claro */
+}
+
+.scheduled-origin-indicator {
+    color: var(--text-light); /* Cor mais sutil */
+    margin-left: 0.4rem;
+    font-size: 0.8em; /* Menor que o título */
+    vertical-align: middle; /* Alinha com o texto */
+    cursor: default; /* Não é clicável */
+}
+
+
+/* Estilo opcional para o ícone info/lixeira de agendado na lista geral */
+.transaction-actions .info-scheduled,
+.transaction-actions .delete-transaction-scheduled {
+    opacity: 0.7;
+    cursor: help; /* Indica que é informativo ou a ação é diferente */
+}
+.transaction-actions .delete-transaction-scheduled {
+   color: var(--danger-color); /* Mantém a cor de delete, mas com opacidade */
+   cursor: not-allowed; /* Indica que a ação está bloqueada AQUI */
+}
+
+
+/* Borda de status para item agendado (garante que funcione) */
+.bill-item.paid { border-left: 4px solid var(--success-color, #198754); }
+.bill-item.insufficient-balance { border-left: 4px solid var(--warning-color, #ffc107); }
+.bill-item.pending:not(.insufficient-balance):not(.paid) { border-left: 4px solid var(--info-color, #0dcaf0); }
+.bill-item.overdue { border-left: 4px solid var(--danger-color, #dc3545); }
+.bill-item:not(.paid):not(.insufficient-balance):not(.pending):not(.overdue) {
+    border-left: 4px solid var(--border-color);
+}
+
+
+
+
+/* Destaque visual para transação originada de agendamento */
+.transaction-item .scheduled-marker {
+    display: inline-block;
+    background-color: var(--scheduled-marker-bg, #e0cffc); /* Roxo bem claro */
+    color: var(--scheduled-marker-text, #560bad);     /* Roxo mais escuro */
+    font-size: 0.7em;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+    line-height: 1.1;
+    border: 1px solid var(--scheduled-marker-border, #c7a7fc);
+}
+/* Para tema escuro (se usar variáveis CSS de tema) */
+[data-theme="dark"] .transaction-item .scheduled-marker {
+     background-color: var(--scheduled-marker-bg-dark, #560bad);
+     color: var(--scheduled-marker-text-dark, #e0cffc);
+     border-color: var(--scheduled-marker-border-dark, #7209b7);
+}
+
+/* Ajustes Imagem da Meta (Repetido para garantir) */
+ .goal-image {
+     width: 60px; height: 60px; object-fit: cover;
+     border-radius: 8px; /* Bordas arredondadas */
+     margin-right: 1rem; flex-shrink: 0;
+     border: 1px solid var(--border-color); /* Borda sutil */
+ }
+ .goal-image-placeholder { /* Estilo para quando não há imagem */
+     width: 60px; height: 60px; background-color: var(--bg-alt-color); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--text-lighter); margin-right: 1rem; flex-shrink: 0; border: 1px dashed var(--border-color);
+ }
+ .goal-form-image-preview { /* Estilo do preview no modal */
+    max-width: 90%; /* Limita largura no modal */
+    max-height: 120px; /* Limita altura no modal */
+    width: auto; height: auto; object-fit: contain; display: block; margin: 0.5rem auto; border-radius: 4px;
+ }
+.image-upload-container { position: relative; border: 2px dashed var(--border-color); padding: 1rem; text-align: center; cursor: pointer; margin-top: 1rem; min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: background-color 0.2s ease; }
+.image-upload-container:hover { background-color: var(--bg-alt-color); }
+ .remove-image-btn { position: absolute; top: 5px; right: 5px; background-color: rgba(0, 0, 0, 0.6); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; line-height: 18px; text-align: center; cursor: pointer; display: none; /* Mostrado via JS */ z-index: 10; }
+
+/* Ajuste opcional para container da lista de agendados dedicada */
+#allScheduledPaymentsList {
+    padding: 0; /* Remover padding padrão se houver */
+    max-height: 60vh; /* Altura máxima com scroll */
+    overflow-y: auto;
+}
+/* Separador visual entre itens na lista completa (opcional) */
+ #allScheduledPaymentsList .bill-item:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Estilo mais forte para o item de débito automático (se desejado) */
+.bill-details .bill-meta span[title="Débito Automático Ativado"] {
+   font-weight: 600;
+   color: var(--primary-color); /* Ou outra cor de destaque */
+}
+
+
+/* ===========================
+   Estilos para Ocultar Valores
+   =========================== */
+
+/* Estilo base para o botão de toggle (opcional) */
+.value-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--sidebar-icon-color, var(--text-color));
+    font-size: 1.1rem; /* Ajuste o tamanho se necessário */
+    cursor: pointer;
+    padding: 0.5rem;
+    margin-left: 0.5rem; /* Espaçamento */
+    vertical-align: middle;
+    line-height: 1; /* Garante alinhamento vertical */
+}
+.value-toggle-btn:hover {
+    color: var(--primary-color);
+}
+
+
+
+/* Ajustes para Inputs quando ocultos */
+body.values-hidden input.monetary-value-input::placeholder {
+    color: var(--text-muted, #999) !important;
+    opacity: 1;
+}
+
+/* Transição suave (opcional) */
+.monetary-value {
+    transition: all 0.2s ease-in-out;
+}
+/* ... outros estilos como new-transaction ... */
+
+.transaction-item.new-transaction {
+    animation: highlight-new 2s ease-out;
+    background-color: var(--highlight-bg, rgba(76, 192, 192, 0.1)); /* Cor de destaque suave */
+    border-left: 4px solid var(--success-color);
+}
+@keyframes highlight-new {
+    from { background-color: var(--highlight-bg-strong, rgba(76, 192, 192, 0.3)); border-left-color: var(--success-color); transform: scale(1.01); }
+    to { background-color: var(--highlight-bg, rgba(76, 192, 192, 0.1)); border-left-color: transparent; transform: scale(1); }
+}
